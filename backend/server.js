@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
     origin: ['http://localhost:5500', 'http://127.0.0.1:5500']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // límite ampliado para recibir imágenes en base64
 
 // Conectar a la base de datos
 conectarDB();

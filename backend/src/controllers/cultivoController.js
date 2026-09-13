@@ -10,6 +10,9 @@ const obtenerMisCultivos = async (req, res) => {
     }
 };
 
+
+// Crea un cultivo nuevo y lo asocia al agricultor autenticado.
+
 const crearCultivo = async (req, res) => {
     try {
         const nuevoCultivo = new Cultivo({
@@ -47,11 +50,15 @@ const actualizarCultivo = async (req, res) => {
             return res.status(403).json({ mensaje: 'No autorizado' });
         }
 
+// Se apartan los campos que el cliente no puede modificar
+        const { agricultorId, createdAt, ...datos } = req.body;
+
         const actualizado = await Cultivo.findByIdAndUpdate(
             req.params.id,
-            { ...req.body, updatedAt: new Date() },
+            { ...datos, updatedAt: new Date() },
             { new: true, runValidators: true }
         );
+
         res.json(actualizado);
     } catch (error) {
         res.status(400).json({ mensaje: error.message });
