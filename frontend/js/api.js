@@ -2,8 +2,6 @@
 // AGROXPRESS - API CLIENT
 // ============================================
 
-const API_URL = 'http://localhost:3000/api';
-
 class AgroXpressAPI {
     constructor() {
         this.token = localStorage.getItem('token');
