@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroXpress | Cultivos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+
+</head>
+<body>
+
+    <div class="dashboard">
+
+        <!-- ========== SIDEBAR ========== -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="AgroXpress" class="logo-img">
+                <span class="text-white">Agro</span><span class="text-green">Xpress</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li id="menuDashboard"><i class="bi bi-grid-1x2-fill"></i> Dashboard</li>
+                <li class="active"><i class="bi bi-tree-fill"></i> Cultivos</li>
+                <li><i class="bi bi-shop"></i> Marketplace</li>
+                <li><i class="bi bi-people-fill"></i> Comunidad</li>
+                <li><i class="bi bi-gear"></i> Ajustes</li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div>
+                        <div class="user-name" id="userName">Usuario</div>
+                        <div class="user-role" id="userRole">Agricultor</div>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btnLogout">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                </button>
+                <div class="sidebar-version">AgroXpress v2.0</div>
+            </div>
+        </nav>
+
+        <!-- ========== MAIN CONTENT ========== -->
+        <div class="main-content">
+
+            <!-- Topbar -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" id="menuToggle">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div>
+                        <h1 class="dashboard-title">Cultivos</h1>
+                        <p class="dashboard-subtitle">Gestión de tus cultivos y cosechas</p>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <span class="welcome">Bienvenido, <strong id="welcomeName">Usuario</strong> 👋</span>
+                </div>
+            </div>
+
+            <!-- Page Header -->
+            <div class="page-header-custom">
+                <div class="header-title">
+                    <h1><i class="bi bi-tree-fill"></i> Mis Cultivos</h1>
+                    <p>Administra todos tus cultivos registrados en AgroXpress</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn-new-custom" id="btnNuevoCultivo">
+                        <i class="bi bi-plus-circle-fill"></i> Nuevo cultivo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="table-container-custom">
+
+                <div class="table-header-custom">
+                    <div class="title">
+                        <i class="bi bi-table"></i> Listado de cultivos
+                        <span class="badge-count" id="cantidadRegistros">0</span>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="filters-bar-custom">
+                    <div class="search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchCultivo" placeholder="Buscar cultivo...">
+                    </div>
+                    <select id="filterEstado">
+                        <option value="">Todos los estados</option>
+                        <option value="En crecimiento">En crecimiento</option>
+                        <option value="En desarrollo">En desarrollo</option>
+                        <option value="Requiere atención">Requiere atención</option>
+                        <option value="Cosechado">Cosechado</option>
+                    </select>
+                    <select id="filterCategoria">
+                        <option value="">Todos los tipos</option>
+                        <option value="Cereal">Cereal</option>
+                        <option value="Granos">Granos</option>
+                        <option value="Hortaliza">Hortaliza</option>
+                        <option value="Fruta">Fruta</option>
+                        <option value="Tubérculo">Tubérculo</option>
+                    </select>
+                </div>
+
+                <!-- Tabla responsive -->
+                <div class="table-responsive-custom">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cultivo</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Estado</th>
+                                <th>Siembra</th>
+                                <th>Cosecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCultivos">
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">
+                                    <i class="bi bi-flower1" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
+                                    No tienes cultivos registrados.
+                                    <br>
+                                    <button class="btn-new-custom" style="margin-top:12px;" id="btnPrimerCultivo">
+                                        <i class="bi bi-plus-circle-fill"></i> Agregar mi primer cultivo
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========== MODAL NUEVO/EDITAR CULTIVO ========== -->
+    <div class="modal-overlay" id="modalCultivo">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Nuevo cultivo</h2>
+                <button class="close-modal" id="closeModal"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <form id="formCultivo">
+                <div class="modal-body">
+                    <input type="hidden" id="editId">
+
+                    <div class="form-group">
+                        <label>Nombre del cultivo <span class="required">*</span></label>
+                        <input type="text" id="cropNombre" placeholder="Ej: Tomate, Maíz, Café" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo <span class="required">*</span></label>
+                        <select id="cropCategoria" required>
+                            <option value="">Selecciona...</option>
+                            <option value="Cereal">Cereal</option>
+                            <option value="Granos">Granos</option>
+                            <option value="Hortaliza">Hortaliza</option>
+                            <option value="Fruta">Fruta</option>
+                            <option value="Tubérculo">Tubérculo</option>
+                        </select>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div class="form-group">
+                            <label>Cantidad <span class="required">*</span></label>
+                            <input type="number" id="cropCantidad" placeholder="0" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Precio (COP) <span class="required">*</span></label>
+                            <input type="number" id="cropPrecio" placeholder="0" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="cropEstado">
+                            <option value="En crecimiento">En crecimiento</option>
+                            <option value="En desarrollo">En desarrollo</option>
+                            <option value="Requiere atención">Requiere atención</option>
+                            <option value="Cosechado">Cosechado</option>
+                        </select>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div class="form-group">
+                            <label>Fecha de siembra</label>
+                            <input type="date" id="cropSiembra">
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de cosecha</label>
+                            <input type="date" id="cropCosecha">
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div class="form-group">
+                            <label>Departamento</label>
+                            <input type="text" id="cropDepartamento" placeholder="Ej: Cundinamarca">
+                        </div>
+                        <div class="form-group">
+                            <label>Municipio</label>
+                            <input type="text" id="cropMunicipio" placeholder="Ej: Silvania">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Observaciones</label>
+                        <textarea id="cropObservaciones" rows="2" style="width:100%; padding:10px 14px; border:1.5px solid var(--border-color); border-radius:var(--radius); font-family:inherit; resize:vertical;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="cancelModal">Cancelar</button>
+                    <button type="submit" class="btn-save" id="saveCropBtn">Guardar cultivo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // ============ VERIFICAR SESIÓN ============
+        if (!verificarSesion()) { }
+
+        const usuario = obtenerUsuario();
+        if (usuario) {
+            document.getElementById('userName').textContent = usuario.nombre || 'Usuario';
+            document.getElementById('userAvatar').textContent = (usuario.nombre || 'U')[0].toUpperCase();
+            document.getElementById('userRole').textContent = usuario.tipo === 'agricultor' ? '👨‍🌾 Agricultor' : '🛒 Comprador';
+            document.getElementById('welcomeName').textContent = usuario.nombre || 'Usuario';
+        }
+
+        // ============ MENÚ TOGGLE (MÓVIL) ============
+        document.getElementById('menuToggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.getElementById('menuToggle');
+            if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+        // ============ CERRAR SESIÓN ============
+        document.getElementById('btnLogout').addEventListener('click', cerrarSesion);
+
+        // ============ IR A DASHBOARD ============
+        document.getElementById('menuDashboard').addEventListener('click', () => {
+            window.location.href = 'dashboard.html';
+        });
+
+        // ============ VARIABLES ============
+        const API_URL = 'http://localhost:3000/api';
+        let cultivos = [];
+        let editandoId = null;
+
+        // ============ DOM ============
+        const tabla = document.getElementById('tablaCultivos');
+        const btnNuevo = document.getElementById('btnNuevoCultivo');
+        const btnPrimer = document.getElementById('btnPrimerCultivo');
+        const modal = document.getElementById('modalCultivo');
+        const closeModal = document.getElementById('closeModal');
+        const cancelModal = document.getElementById('cancelModal');
+        const form = document.getElementById('formCultivo');
+        const modalTitulo = document.getElementById('modalTitulo');
+        const saveBtn = document.getElementById('saveCropBtn');
+
+        const editId = document.getElementById('editId');
+        const cropNombre = document.getElementById('cropNombre');
+        const cropCategoria = document.getElementById('cropCategoria');
+        const cropCantidad = document.getElementById('cropCantidad');
+        const cropPrecio = document.getElementById('cropPrecio');
+        const cropEstado = document.getElementById('cropEstado');
+        const cropSiembra = document.getElementById('cropSiembra');
+        const cropCosecha = document.getElementById('cropCosecha');
+        const cropDepartamento = document.getElementById('cropDepartamento');
+        const cropMunicipio = document.getElementById('cropMunicipio');
+        const cropObservaciones = document.getElementById('cropObservaciones');
+
+        const searchInput = document.getElementById('searchCultivo');
+        const filterEstado = document.getElementById('filterEstado');
+        const filterCategoria = document.getElementById('filterCategoria');
+
+        // ============ FUNCIONES ============
+
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + getToken()
+            };
+        }
+
+        function formatDate(date) {
+            if (!date) return '-';
+            const d = new Date(date);
+            return d.toLocaleDateString('es-CO', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        async function cargarCultivos() {
+            try {
+                const response = await fetch(`${API_URL}/cultivos/mis-cultivos`, {
+                    headers: getHeaders()
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        cerrarSesion();
+                        return;
+                    }
+                    throw new Error('Error al cargar cultivos');
+                }
+
+                cultivos = await response.json();
+                renderizarTabla();
+                document.getElementById('cantidadRegistros').textContent = cultivos.length;
+
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function renderizarTabla(lista = cultivos) {
+            if (lista.length === 0) {
+                tabla.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">
+                            <i class="bi bi-flower1" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
+                            No tienes cultivos registrados.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            lista.forEach(c => {
+                const badgeClass = c.estado === 'En crecimiento' ? 'badge-success' :
+                                  c.estado === 'En desarrollo' ? 'badge-warning' :
+                                  c.estado === 'Requiere atención' ? 'badge-danger' : 'badge-info';
+
+                const icono = c.categoria === 'Cereal' ? '🌾' :
+                              c.categoria === 'Granos' ? '🫘' :
+                              c.categoria === 'Hortaliza' ? '🥬' :
+                              c.categoria === 'Fruta' ? '🍎' : '🥔';
+
+                html += `
+                <tr>
+                    <td>
+                        <div class="crop-info">
+                            <div class="crop-image">${icono}</div>
+                            <div>
+                                <div class="crop-name">${c.nombreProducto}</div>
+                                <div class="crop-variety">${c.variedad || ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span style="font-size:0.85rem;">${c.categoria}</span></td>
+                    <td><strong>${c.cantidadDisponible}</strong> ${c.unidadMedida || 'kg'}</td>
+                    <td><span class="badge ${badgeClass}">${c.estado}</span></td>
+                    <td>${formatDate(c.fechaSiembra)}</td>
+                    <td>${formatDate(c.fechaCosecha)}</td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="view" data-id="${c._id}" title="Ver"><i class="bi bi-eye"></i></button>
+                            <button class="edit" data-id="${c._id}" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button class="delete" data-id="${c._id}" title="Eliminar"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+
+            tabla.innerHTML = html;
+
+            tabla.querySelectorAll('.view').forEach(btn => {
+                btn.addEventListener('click', () => verCultivo(btn.dataset.id));
+            });
+            tabla.querySelectorAll('.edit').forEach(btn => {
+                btn.addEventListener('click', () => editarCultivo(btn.dataset.id));
+            });
+            tabla.querySelectorAll('.delete').forEach(btn => {
+                btn.addEventListener('click', () => eliminarCultivo(btn.dataset.id));
+            });
+        }
+
+        function aplicarFiltros() {
+            const search = searchInput.value.toLowerCase();
+            const estado = filterEstado.value;
+            const categoria = filterCategoria.value;
+
+            const filtrados = cultivos.filter(c => {
+                const matchSearch = c.nombreProducto.toLowerCase().includes(search);
+                const matchEstado = !estado || c.estado === estado;
+                const matchCategoria = !categoria || c.categoria === categoria;
+                return matchSearch && matchEstado && matchCategoria;
+            });
+
+            renderizarTabla(filtrados);
+            document.getElementById('cantidadRegistros').textContent = filtrados.length;
+        }
+
+        // ============ MODAL ============
+        function abrirModal(cultivo = null) {
+            editandoId = cultivo?._id || null;
+            modalTitulo.textContent = cultivo ? 'Editar cultivo' : 'Nuevo cultivo';
+            saveBtn.textContent = cultivo ? 'Actualizar cultivo' : 'Guardar cultivo';
+
+            if (cultivo) {
+                editId.value = cultivo._id;
+                cropNombre.value = cultivo.nombreProducto || '';
+                cropCategoria.value = cultivo.categoria || '';
+                cropCantidad.value = cultivo.cantidadDisponible || '';
+                cropPrecio.value = cultivo.precioPorUnidad || '';
+                cropEstado.value = cultivo.estado || 'En crecimiento';
+                cropSiembra.value = cultivo.fechaSiembra ? cultivo.fechaSiembra.split('T')[0] : '';
+                cropCosecha.value = cultivo.fechaCosecha ? cultivo.fechaCosecha.split('T')[0] : '';
+                cropDepartamento.value = cultivo.ubicacion?.departamento || '';
+                cropMunicipio.value = cultivo.ubicacion?.municipio || '';
+                cropObservaciones.value = cultivo.observaciones || '';
+            } else {
+                form.reset();
+                editId.value = '';
+                cropEstado.value = 'En crecimiento';
+            }
+
+            modal.classList.add('open');
+        }
+
+        function cerrarModal() {
+            modal.classList.remove('open');
+            editandoId = null;
+            form.reset();
+        }
+
+        // ============ CRUD ============
+        async function crearCultivo(datos) {
+            const response = await fetch(`${API_URL}/cultivos`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(datos)
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.mensaje || 'Error al crear cultivo');
+            }
+            return response.json();
+        }
+
+        async function actualizarCultivo(id, datos) {
+            const response = await fetch(`${API_URL}/cultivos/${id}`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify(datos)
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.mensaje || 'Error al actualizar cultivo');
+            }
+            return response.json();
+        }
+
+        async function eliminarCultivo(id) {
+            const cultivo = cultivos.find(c => c._id === id);
+            if (!confirm(`¿Estás seguro de eliminar "${cultivo?.nombreProducto}"?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/cultivos/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.mensaje || 'Error al eliminar');
+                }
+                await cargarCultivos();
+            } catch (error) {
+                alert('❌ ' + error.message);
+            }
+        }
+
+        function verCultivo(id) {
+            const cultivo = cultivos.find(c => c._id === id);
+            if (!cultivo) return;
+            alert(
+                `📋 ${cultivo.nombreProducto}\n` +
+                `Tipo: ${cultivo.categoria}\n` +
+                `Cantidad: ${cultivo.cantidadDisponible} kg\n` +
+                `Precio: $${cultivo.precioPorUnidad}\n` +
+                `Estado: ${cultivo.estado}\n` +
+                `Ubicación: ${cultivo.ubicacion?.departamento || ''} - ${cultivo.ubicacion?.municipio || ''}`
+            );
+        }
+
+        function editarCultivo(id) {
+            const cultivo = cultivos.find(c => c._id === id);
+            if (cultivo) abrirModal(cultivo);
+        }
+
+        // ============ EVENTOS ============
+        btnNuevo.addEventListener('click', () => abrirModal());
+        if (btnPrimer) btnPrimer.addEventListener('click', () => abrirModal());
+
+        closeModal.addEventListener('click', cerrarModal);
+        cancelModal.addEventListener('click', cerrarModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) cerrarModal();
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const datos = {
+                nombreProducto: cropNombre.value.trim(),
+                categoria: cropCategoria.value,
+                cantidadDisponible: parseInt(cropCantidad.value) || 0,
+                precioPorUnidad: parseInt(cropPrecio.value) || 0,
+                estado: cropEstado.value,
+                fechaSiembra: cropSiembra.value || undefined,
+                fechaCosecha: cropCosecha.value || undefined,
+                ubicacion: {
+                    departamento: cropDepartamento.value.trim() || 'Sin especificar',
+                    municipio: cropMunicipio.value.trim() || 'Sin especificar'
+                },
+                observaciones: cropObservaciones.value.trim() || ''
+            };
+
+            if (!datos.nombreProducto || datos.nombreProducto.length < 2) {
+                alert('El nombre del cultivo es obligatorio (mínimo 2 caracteres)');
+                cropNombre.focus();
+                return;
+            }
+
+            if (!datos.categoria) {
+                alert('Selecciona el tipo de cultivo');
+                cropCategoria.focus();
+                return;
+            }
+
+            try {
+                let resultado;
+                if (editandoId) {
+                    resultado = await actualizarCultivo(editandoId, datos);
+                } else {
+                    resultado = await crearCultivo(datos);
+                }
+                cerrarModal();
+                await cargarCultivos();
+            } catch (error) {
+                alert('❌ ' + error.message);
+            }
+        });
+
+        searchInput.addEventListener('input', aplicarFiltros);
+        filterEstado.addEventListener('change', aplicarFiltros);
+        filterCategoria.addEventListener('change', aplicarFiltros);
+
+        // ============ INICIALIZAR ============
+        cargarCultivos();
+    </script>
+
+</body>
+</html>
