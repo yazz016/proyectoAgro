@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/styles.css">
-
 </head>
 <body>
 
@@ -19,7 +18,7 @@
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-logo">
                 <img src="assets/logo.png" alt="AgroXpress" class="logo-img">
-                <span class="text-white">Agro</span><span class="text-green">Xpress</span>
+                <span><span class="text-white">Agro</span><span class="text-green">Xpress</span></span>
             </div>
             <ul class="sidebar-menu">
                 <li id="menuDashboard"><i class="bi bi-grid-1x2-fill"></i> Dashboard</li>
@@ -117,6 +116,7 @@
                                 <th>Tipo</th>
                                 <th>Cantidad</th>
                                 <th>Estado</th>
+                                <th>Disponibilidad</th>
                                 <th>Siembra</th>
                                 <th>Cosecha</th>
                                 <th>Acciones</th>
@@ -124,13 +124,9 @@
                         </thead>
                         <tbody id="tablaCultivos">
                             <tr>
-                                <td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">
+                                <td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">
                                     <i class="bi bi-flower1" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
                                     No tienes cultivos registrados.
-                                    <br>
-                                    <button class="btn-new-custom" style="margin-top:12px;" id="btnPrimerCultivo">
-                                        <i class="bi bi-plus-circle-fill"></i> Agregar mi primer cultivo
-                                    </button>
                                 </td>
                             </tr>
                         </tbody>
@@ -213,8 +209,14 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Imagen del cultivo</label>
+                        <input type="file" id="cropImagen" accept="image/*">
+                        <img id="cropPreview" alt="Vista previa" style="display:none; max-width:100%; max-height:150px; margin-top:8px; border-radius:8px;">
+                    </div>
+
+                    <div class="form-group">
                         <label>Observaciones</label>
-                        <textarea id="cropObservaciones" rows="2" style="width:100%; padding:10px 14px; border:1.5px solid var(--border-color); border-radius:var(--radius); font-family:inherit; resize:vertical;"></textarea>
+                        <textarea id="cropObservaciones" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -238,7 +240,7 @@
             document.getElementById('welcomeName').textContent = usuario.nombre || 'Usuario';
         }
 
-        // ============ MENÚ TOGGLE (MÓVIL) ============
+        // ============ MENÚ TOGGLE ============
         document.getElementById('menuToggle').addEventListener('click', () => {
             document.getElementById('sidebar').classList.toggle('open');
         });
@@ -260,14 +262,14 @@
         });
 
         // ============ VARIABLES ============
-        const API_URL = 'http://localhost:3000/api';
+        
         let cultivos = [];
         let editandoId = null;
+        let imagenSeleccionada = null;
 
         // ============ DOM ============
         const tabla = document.getElementById('tablaCultivos');
         const btnNuevo = document.getElementById('btnNuevoCultivo');
-        const btnPrimer = document.getElementById('btnPrimerCultivo');
         const modal = document.getElementById('modalCultivo');
         const closeModal = document.getElementById('closeModal');
         const cancelModal = document.getElementById('cancelModal');
@@ -285,6 +287,8 @@
         const cropCosecha = document.getElementById('cropCosecha');
         const cropDepartamento = document.getElementById('cropDepartamento');
         const cropMunicipio = document.getElementById('cropMunicipio');
+        const cropImagen = document.getElementById('cropImagen');
+        const cropPreview = document.getElementById('cropPreview');
         const cropObservaciones = document.getElementById('cropObservaciones');
 
         const searchInput = document.getElementById('searchCultivo');
@@ -341,7 +345,7 @@
             if (lista.length === 0) {
                 tabla.innerHTML = `
                     <tr>
-                        <td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">
+                        <td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">
                             <i class="bi bi-flower1" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
                             No tienes cultivos registrados.
                         </td>
@@ -361,11 +365,19 @@
                               c.categoria === 'Hortaliza' ? '🥬' :
                               c.categoria === 'Fruta' ? '🍎' : '🥔';
 
+                const disponible = c.disponibleVenta !== false;
+
                 html += `
                 <tr>
                     <td>
                         <div class="crop-info">
-                            <div class="crop-image">${icono}</div>
+                            <div class="crop-image">
+                                ${
+                                    c.imagenes?.[0]?.url
+                                        ? `<img src="${c.imagenes[0].url}" alt="${c.nombreProducto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`
+                                        : icono
+                                }
+                            </div>
                             <div>
                                 <div class="crop-name">${c.nombreProducto}</div>
                                 <div class="crop-variety">${c.variedad || ''}</div>
@@ -375,13 +387,25 @@
                     <td><span style="font-size:0.85rem;">${c.categoria}</span></td>
                     <td><strong>${c.cantidadDisponible}</strong> ${c.unidadMedida || 'kg'}</td>
                     <td><span class="badge ${badgeClass}">${c.estado}</span></td>
+                    <td>
+                        <button 
+                            class="btn-disponible ${disponible ? 'activo' : 'inactivo'}" 
+                            onclick="toggleDisponible('${c._id}', ${disponible})"
+                        >
+                            <i class="bi ${disponible ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>
+                            ${disponible ? 'Disponible' : 'No disponible'}
+                        </button>
+                    </td>
                     <td>${formatDate(c.fechaSiembra)}</td>
                     <td>${formatDate(c.fechaCosecha)}</td>
                     <td>
                         <div class="table-actions">
-                            <button class="view" data-id="${c._id}" title="Ver"><i class="bi bi-eye"></i></button>
-                            <button class="edit" data-id="${c._id}" title="Editar"><i class="bi bi-pencil"></i></button>
-                            <button class="delete" data-id="${c._id}" title="Eliminar"><i class="bi bi-trash"></i></button>
+                            <button class="edit" data-id="${c._id}" title="Editar">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button class="delete" data-id="${c._id}" title="Eliminar">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>`;
@@ -389,15 +413,33 @@
 
             tabla.innerHTML = html;
 
-            tabla.querySelectorAll('.view').forEach(btn => {
-                btn.addEventListener('click', () => verCultivo(btn.dataset.id));
-            });
             tabla.querySelectorAll('.edit').forEach(btn => {
                 btn.addEventListener('click', () => editarCultivo(btn.dataset.id));
             });
             tabla.querySelectorAll('.delete').forEach(btn => {
                 btn.addEventListener('click', () => eliminarCultivo(btn.dataset.id));
             });
+        }
+
+        async function toggleDisponible(id, estadoActual) {
+            try {
+                const response = await fetch(`${API_URL}/cultivos/${id}`, {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        disponibleVenta: !estadoActual
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al actualizar disponibilidad');
+                }
+
+                await cargarCultivos();
+
+            } catch (error) {
+                alert('❌ ' + error.message);
+            }
         }
 
         function aplicarFiltros() {
@@ -434,10 +476,22 @@
                 cropDepartamento.value = cultivo.ubicacion?.departamento || '';
                 cropMunicipio.value = cultivo.ubicacion?.municipio || '';
                 cropObservaciones.value = cultivo.observaciones || '';
+                if (cultivo.imagenes?.[0]?.url) {
+                    imagenSeleccionada = cultivo.imagenes[0].url;
+                    cropPreview.src = imagenSeleccionada;
+                    cropPreview.style.display = 'block';
+                } else {
+                    imagenSeleccionada = null;
+                    cropPreview.style.display = 'none';
+                    cropPreview.src = '';
+                }
             } else {
                 form.reset();
                 editId.value = '';
                 cropEstado.value = 'En crecimiento';
+                imagenSeleccionada = null;
+                cropPreview.style.display = 'none';
+                cropPreview.src = '';
             }
 
             modal.classList.add('open');
@@ -447,7 +501,28 @@
             modal.classList.remove('open');
             editandoId = null;
             form.reset();
+            imagenSeleccionada = null;
+            cropPreview.style.display = 'none';
+            cropPreview.src = '';
         }
+
+        // ============ VISTA PREVIA DE IMAGEN ============
+        cropImagen.addEventListener('change', (e) => {
+            const archivo = e.target.files[0];
+            if (!archivo) {
+                imagenSeleccionada = null;
+                cropPreview.style.display = 'none';
+                return;
+            }
+
+            const lector = new FileReader();
+            lector.onload = (evento) => {
+                imagenSeleccionada = evento.target.result;
+                cropPreview.src = imagenSeleccionada;
+                cropPreview.style.display = 'block';
+            };
+            lector.readAsDataURL(archivo);
+        });
 
         // ============ CRUD ============
         async function crearCultivo(datos) {
@@ -495,19 +570,6 @@
             }
         }
 
-        function verCultivo(id) {
-            const cultivo = cultivos.find(c => c._id === id);
-            if (!cultivo) return;
-            alert(
-                `📋 ${cultivo.nombreProducto}\n` +
-                `Tipo: ${cultivo.categoria}\n` +
-                `Cantidad: ${cultivo.cantidadDisponible} kg\n` +
-                `Precio: $${cultivo.precioPorUnidad}\n` +
-                `Estado: ${cultivo.estado}\n` +
-                `Ubicación: ${cultivo.ubicacion?.departamento || ''} - ${cultivo.ubicacion?.municipio || ''}`
-            );
-        }
-
         function editarCultivo(id) {
             const cultivo = cultivos.find(c => c._id === id);
             if (cultivo) abrirModal(cultivo);
@@ -515,7 +577,6 @@
 
         // ============ EVENTOS ============
         btnNuevo.addEventListener('click', () => abrirModal());
-        if (btnPrimer) btnPrimer.addEventListener('click', () => abrirModal());
 
         closeModal.addEventListener('click', cerrarModal);
         cancelModal.addEventListener('click', cerrarModal);
@@ -538,7 +599,8 @@
                     departamento: cropDepartamento.value.trim() || 'Sin especificar',
                     municipio: cropMunicipio.value.trim() || 'Sin especificar'
                 },
-                observaciones: cropObservaciones.value.trim() || ''
+                observaciones: cropObservaciones.value.trim() || '',
+                imagenes: imagenSeleccionada ? [{ url: imagenSeleccionada }] : []
             };
 
             if (!datos.nombreProducto || datos.nombreProducto.length < 2) {
@@ -554,11 +616,10 @@
             }
 
             try {
-                let resultado;
                 if (editandoId) {
-                    resultado = await actualizarCultivo(editandoId, datos);
+                    await actualizarCultivo(editandoId, datos);
                 } else {
-                    resultado = await crearCultivo(datos);
+                    await crearCultivo(datos);
                 }
                 cerrarModal();
                 await cargarCultivos();
@@ -577,3 +638,4 @@
 
 </body>
 </html>
+

@@ -12,7 +12,6 @@ const obtenerMisCultivos = async (req, res) => {
 
 
 // Crea un cultivo nuevo y lo asocia al agricultor autenticado.
-
 const crearCultivo = async (req, res) => {
     try {
         const nuevoCultivo = new Cultivo({

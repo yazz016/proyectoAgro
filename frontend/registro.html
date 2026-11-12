@@ -25,22 +25,13 @@
                             <span class="text-green">Xpress</span>
                         </h1>
                     </div>
-                    <p class="brand-slogan">🌱 Únete a la comunidad agrícola más grande de Colombia</p>
+                    <p class="brand-slogan"> Cultiva, inspira y avanza</p>
                     <div class="brand-features">
-                        <div><i class="bi bi-tree-fill"></i> Gestión inteligente de cultivos</div>
-                        <div><i class="bi bi-shop"></i> Conecta con compradores sin intermediarios</div>
-                        <div><i class="bi bi-mortarboard-fill"></i> Capacitación y comunidad</div>
-                        <div><i class="bi bi-universal-access"></i> Accesibilidad para todos</div>
+                        <div><i class="bi bi-check-circle-fill"></i> Gestiona tus cultivos fácilmente</div>
+                        <div><i class="bi bi-check-circle-fill"></i> Vende sin intermediarios</div>
+                        <div><i class="bi bi-check-circle-fill"></i> Conecta con compradores</div>
+                        <div><i class="bi bi-check-circle-fill"></i> Accesible para todos</div>
                     </div>
-
-                    <div class="register-progress">
-                        <div class="progress-step active">1</div>
-                        <div class="progress-line"></div>
-                        <div class="progress-step">2</div>
-                        <div class="progress-line"></div>
-                        <div class="progress-step">3</div>
-                    </div>
-                    <p class="progress-text">Paso 1 de 3 · Datos personales</p>
                 </div>
             </div>
 
@@ -48,8 +39,10 @@
             <div class="auth-form">
                 <div class="wrapper">
 
-                    <h2>Crear cuenta</h2>
-                    <p class="subtitle">Completa tus datos para comenzar en AgroXpress</p>
+                    <h2> Bienvenido a AgroXpress</h2>
+                    <p class="subtitle">
+                        Crea tu cuenta gratis en menos de 1 minuto.
+                    </p>
 
                     <div id="registerMessage" class="form-message"></div>
 
@@ -57,30 +50,30 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Nombre <span class="required">*</span></label>
-                                <input type="text" id="registerNombre" placeholder="Tu nombre" required>
+                                <label>Nombre</label>
+                                <input type="text" id="registerNombre" placeholder="Ej: María" required>
                             </div>
                             <div class="form-group">
-                                <label>Apellido <span class="required">*</span></label>
-                                <input type="text" id="registerApellido" placeholder="Tu apellido" required>
+                                <label>Apellido</label>
+                                <input type="text" id="registerApellido" placeholder="Ej: López" required>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label>¿Cómo deseas usar AgroXpress? <span class="required">*</span></label>
+                            <label>¿Cómo vas a usar AgroXpress?</label>
                             <select id="registerType" required>
-                                <option value="">Selecciona una opción</option>
-                                <option value="agricultor">Agricultor</option>
-                                <option value="comprador">Comprador</option>
-                                <option value="estudiante">Estudiante</option>
+                                <option value="">Elige una opción</option>
+                                <option value="agricultor">👨‍🌾 Agricultor (quiero vender)</option>
+                                <option value="comprador">🛒 Comprador (quiero comprar)</option>
+                                <option value="estudiante">📚 Estudiante (quiero aprender)</option>
                             </select>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Tipo de documento <span class="required">*</span></label>
+                                <label>Tipo de documento</label>
                                 <select id="documentType" required>
-                                    <option value="">Selecciona</option>
+                                    <option value="">Elige</option>
                                     <option value="cc">Cédula de ciudadanía</option>
                                     <option value="ce">Cédula de extranjería</option>
                                     <option value="ti">Tarjeta de identidad</option>
@@ -88,60 +81,54 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Número de documento <span class="required">*</span></label>
-                                <input type="text" id="documentNumber" placeholder="Ej. 12345678" required>
+                                <label>Número de documento</label>
+                                <input type="text" id="documentNumber" placeholder="Ej: 12345678" required>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label>Correo electrónico <span class="required">*</span></label>
-                            <div class="input-wrapper">
-                                <i class="bi bi-envelope"></i>
-                                <input type="email" id="registerEmail" placeholder="correo@ejemplo.com" required>
-                            </div>
+                            <label>Correo electrónico</label>
+                            <input type="email" id="registerEmail" placeholder="correo@ejemplo.com" required>
+                            <small>Lo usarás para iniciar sesión</small>
                         </div>
 
                         <div class="form-row">
-                            <!-- Contraseña -->
                             <div class="form-group">
-                                <label>Contraseña <span class="required">*</span></label>
+                                <label>Contraseña</label>
                                 <div class="input-wrapper">
                                     <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" required>
                                     <button type="button" class="password-toggle" id="togglePassword">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
-                                <small>Mínimo 6 caracteres</small>
+                                <small>Al menos 6 caracteres</small>
                             </div>
-                            <!-- Confirmar contraseña -->
                             <div class="form-group">
-                                <label>Confirmar contraseña <span class="required">*</span></label>
+                                <label>Confirmar contraseña</label>
                                 <div class="input-wrapper">
                                     <input type="password" id="registerConfirm" placeholder="Repite tu contraseña" required>
                                     <button type="button" class="password-toggle" id="toggleConfirm">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
-                                <small id="passwordMatch">Las contraseñas deben coincidir</small>
+                                <small id="passwordMatch">Deben coincidir</small>
                             </div>
                         </div>
 
                         <div class="terms">
                             <input type="checkbox" id="terms" required>
                             <label for="terms">
-                                Acepto los <a href="#">Términos y Condiciones</a> y la <a href="#">Política de Privacidad</a>
-                                <span class="required">*</span>
+                                Acepto los <a href="#">Términos</a> y la <a href="#">Política de Privacidad</a>
                             </label>
                         </div>
 
                         <button type="submit" class="btn-auth">
-                            <span>Crear cuenta</span>
-                            <i class="bi bi-arrow-right"></i>
+                            Crear mi cuenta                            <i class="bi bi-arrow-right"></i>
                         </button>
                     </form>
 
                     <p class="auth-switch">
-                        ¿Ya tienes una cuenta? <a href="login.html">Inicia sesión</a>
+                        ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
                     </p>
 
                 </div>
@@ -152,7 +139,7 @@
 
     <script src="js/auth.js"></script>
     <script>
-        // Toggle password visibility
+        // Mostrar/ocultar contraseña
         document.querySelectorAll('.password-toggle').forEach(btn => {
             btn.addEventListener('click', function() {
                 const input = this.parentElement.querySelector('input');
@@ -167,7 +154,7 @@
             });
         });
 
-        // Confirm password match
+        // Verificar que las contraseñas coincidan
         const password = document.getElementById('registerPassword');
         const confirm = document.getElementById('registerConfirm');
         const matchMsg = document.getElementById('passwordMatch');
@@ -175,14 +162,14 @@
         function checkMatch() {
             if (confirm.value.length > 0) {
                 if (password.value === confirm.value) {
-                    matchMsg.textContent = '✅ Las contraseñas coinciden';
+                    matchMsg.textContent = '✅ Coinciden';
                     matchMsg.style.color = 'var(--success)';
                 } else {
-                    matchMsg.textContent = '❌ Las contraseñas no coinciden';
+                    matchMsg.textContent = '❌ No coinciden';
                     matchMsg.style.color = 'var(--danger)';
                 }
             } else {
-                matchMsg.textContent = 'Las contraseñas deben coincidir';
+                matchMsg.textContent = 'Deben coincidir';
                 matchMsg.style.color = 'var(--text-muted)';
             }
         }

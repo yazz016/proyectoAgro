@@ -35,23 +35,6 @@ a { text-decoration: none; color: inherit; }
 ul { list-style: none; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
 
-input, select, textarea {
-    font-family: inherit;
-    outline: none;
-    border: 1.5px solid var(--border-color);
-    border-radius: var(--radius);
-    padding: 10px 14px;
-    font-size: 1rem;
-    width: 100%;
-    transition: 0.3s;
-    background: white;
-}
-
-input:focus, select:focus, textarea:focus {
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.12);
-}
-
 /* ========== UTILIDADES ========== */
 .text-center { text-align: center; }
 .text-white { color: #FFFFFF; }
@@ -275,7 +258,7 @@ input:focus, select:focus, textarea:focus {
     font-weight: 600;
     font-size: 0.9rem;
     color: var(--text-color);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .auth-form .form-group label .required {
@@ -285,22 +268,27 @@ input:focus, select:focus, textarea:focus {
 .auth-form .form-group input,
 .auth-form .form-group select {
     width: 100%;
-    padding: 11px 14px;
-    border: 1.5px solid var(--border-color);
+    padding: 14px 16px;
+    border: 2px solid var(--border-color);
     border-radius: 12px;
     font-size: 0.95rem;
-    transition: 0.3s;
-    background: white;
+    transition: 0.25s;
+    background: #FAFAFA;
+    box-sizing: border-box;
+    color: var(--text-color);
 }
 
 .auth-form .form-group input:focus,
 .auth-form .form-group select:focus {
     border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(139, 195, 74, 0.1);
+    outline: none;
 }
 
 .auth-form .form-group input::placeholder {
-    color: #b0b0b0;
+    color: #9CA3AF;
+    font-size: 0.9rem;
 }
 
 .auth-form .form-group select {
@@ -309,6 +297,7 @@ input:focus, select:focus, textarea:focus {
     background-repeat: no-repeat;
     background-position: right 14px center;
     cursor: pointer;
+    padding-right: 40px;
 }
 
 .auth-form .form-group small {
@@ -318,63 +307,79 @@ input:focus, select:focus, textarea:focus {
     margin-top: 4px;
 }
 
-/* INPUT CON ICONO */
+/* ==========================================
+   INPUT CON BOTÓN DE OJO (CONTRASEÑA)
+========================================== */
+
 .input-wrapper {
     position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.input-wrapper i {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    z-index: 2;
-    pointer-events: none;
+    display: block;
+    width: 100%;
 }
 
 .input-wrapper input {
-    padding-left: 44px !important;
-    padding-right: 44px !important;
     width: 100%;
-    height: 48px;
-    border: 1.5px solid var(--border-color);
+    height: 50px;
+    padding: 14px 48px 14px 16px;
+    border: 2px solid var(--border-color);
     border-radius: 12px;
     font-size: 0.95rem;
-    transition: 0.3s;
-    background: white;
+    background: #FAFAFA;
+    transition: 0.25s;
+    box-sizing: border-box;
+    color: var(--text-color);
 }
 
 .input-wrapper input:focus {
     border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.15);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(139, 195, 74, 0.1);
+    outline: none;
 }
 
-.password-toggle {
+.input-wrapper input::placeholder {
+    color: #9CA3AF;
+    font-size: 0.9rem;
+}
+
+/* BOTÓN DEL OJO */
+.input-wrapper .password-toggle {
     position: absolute;
-    right: 12px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
+    background: transparent;
     border: none;
-    color: var(--text-muted);
-    font-size: 1.1rem;
+    color: #6B7280;
+    font-size: 1.15rem;
     cursor: pointer;
-    padding: 8px;
-    z-index: 2;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    transition: 0.3s;
+    transition: 0.2s;
+    z-index: 2;
+    padding: 0;
+    margin: 0;
+    outline: none;
 }
 
-.password-toggle:hover {
-    color: var(--text-color);
-    background: rgba(0,0,0,0.05);
+.input-wrapper .password-toggle:hover {
+    background: #F3F4F6;
+    color: #1F2A3E;
+}
+
+.input-wrapper .password-toggle:focus {
+    outline: 2px solid var(--secondary-color);
+    outline-offset: 2px;
+}
+
+.input-wrapper .password-toggle i {
+    font-size: 1.15rem;
+    line-height: 1;
+    pointer-events: none;
 }
 
 /* OPCIONES (Login) */
@@ -454,12 +459,12 @@ input:focus, select:focus, textarea:focus {
 /* BOTONES */
 .btn-auth {
     width: 100%;
-    padding: 14px 20px;
+    padding: 16px 24px;
     background: var(--primary-color);
     color: #FFFFFF;
     border: none;
     border-radius: 12px;
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     cursor: pointer;
     transition: 0.3s;
@@ -467,12 +472,17 @@ input:focus, select:focus, textarea:focus {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    box-shadow: 0 4px 12px rgba(18, 71, 52, 0.25);
 }
 
 .btn-auth:hover {
     background: var(--primary-light);
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(18, 71, 52, 0.3);
+    box-shadow: 0 6px 20px rgba(18, 71, 52, 0.35);
+}
+
+.btn-auth:active {
+    transform: translateY(0);
 }
 
 /* DIVISOR */
@@ -504,7 +514,7 @@ input:focus, select:focus, textarea:focus {
 .social-login button {
     flex: 1;
     padding: 12px;
-    border: 1.5px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: 12px;
     background: white;
     font-size: 0.9rem;
@@ -545,27 +555,43 @@ input:focus, select:focus, textarea:focus {
     text-decoration: underline;
 }
 
-/* MENSAJES */
+/* ==========================================
+   MENSAJES MODERNOS
+========================================== */
 .form-message {
-    padding: 12px 16px;
-    border-radius: 10px;
-    margin-bottom: 16px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
     display: none;
-    font-size: 0.9rem;
+    animation: slideDown 0.3s ease;
+    border-left: 4px solid;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .form-message.error {
     display: block;
-    background: #FEE2E2;
-    color: #991B1B;
-    border: 1px solid #FECACA;
+    background: #FEF2F2;
+    color: #B91C1C;
+    border-color: #EF4444;
 }
 
 .form-message.success {
     display: block;
-    background: #DCFCE7;
-    color: #166534;
-    border: 1px solid #BBF7D0;
+    background: #F0FDF4;
+    color: #15803D;
+    border-color: #22C55E;
 }
 
 /* ==========================================
@@ -1076,7 +1102,7 @@ input:focus, select:focus, textarea:focus {
 .filters-bar-custom .search-box input {
     width: 100%;
     padding: 10px 16px 10px 42px;
-    border: 1.5px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: var(--radius);
     font-size: 0.95rem;
     transition: 0.3s;
@@ -1086,11 +1112,12 @@ input:focus, select:focus, textarea:focus {
 .filters-bar-custom .search-box input:focus {
     border-color: var(--secondary-color);
     box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.12);
+    outline: none;
 }
 
 .filters-bar-custom select {
     padding: 10px 14px;
-    border: 1.5px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: var(--radius);
     font-size: 0.95rem;
     background: white;
@@ -1101,6 +1128,7 @@ input:focus, select:focus, textarea:focus {
 .filters-bar-custom select:focus {
     border-color: var(--secondary-color);
     box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.12);
+    outline: none;
 }
 
 .table-responsive-custom {
@@ -1185,7 +1213,7 @@ input:focus, select:focus, textarea:focus {
     display: block;
     font-weight: 600;
     font-size: 0.9rem;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .modal-body .form-group label .required {
@@ -1195,8 +1223,8 @@ input:focus, select:focus, textarea:focus {
 .modal-body .form-group input,
 .modal-body .form-group select {
     width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid var(--border-color);
+    padding: 12px 14px;
+    border: 2px solid var(--border-color);
     border-radius: var(--radius);
     font-size: 0.95rem;
     transition: 0.3s;
@@ -1206,6 +1234,7 @@ input:focus, select:focus, textarea:focus {
 .modal-body .form-group select:focus {
     border-color: var(--secondary-color);
     box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.12);
+    outline: none;
 }
 
 .modal-footer {
@@ -1219,7 +1248,7 @@ input:focus, select:focus, textarea:focus {
 
 .modal-footer .btn-cancel {
     padding: 10px 20px;
-    border: 1.5px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: var(--radius);
     background: white;
     font-weight: 600;
@@ -1490,3 +1519,245 @@ input:focus, select:focus, textarea:focus {
     }
 }
 
+/* ==========================================
+   BOTONES DE ACCIÓN EN LA TABLA
+========================================== */
+
+.table-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+}
+
+.table-actions button {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.table-actions button:hover {
+    transform: scale(1.1);
+}
+
+/* Botón VER */
+.table-actions .view {
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--info);
+}
+
+.table-actions .view:hover {
+    background: var(--info);
+    color: white;
+}
+
+/* Botón EDITAR */
+.table-actions .edit {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.table-actions .edit:hover {
+    background: var(--warning);
+    color: white;
+}
+
+/* Botón ELIMINAR */
+.table-actions .delete {
+    background: rgba(220, 38, 38, 0.1);
+    color: var(--danger);
+}
+
+.table-actions .delete:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Columna de acciones alineada */
+.table td:last-child,
+.table th:last-child {
+    text-align: center;
+    width: 130px;
+}
+
+/* ==========================================
+   BOTÓN DE DISPONIBILIDAD
+========================================== */
+
+.btn-disponible {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    border: none;
+    white-space: nowrap;
+}
+
+.btn-disponible.activo {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+.btn-disponible.activo:hover {
+    background: #16A34A;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-disponible.inactivo {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.btn-disponible.inactivo:hover {
+    background: #DC2626;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* ==========================================
+   BOTONES DE ACCIÓN
+========================================== */
+
+.table-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.table-actions button {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.table-actions .edit {
+    background: #FFF3E0;
+    color: #F59E0B;
+}
+
+.table-actions .edit:hover {
+    background: #F59E0B;
+    color: white;
+    transform: scale(1.1);
+}
+
+.table-actions .delete {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.table-actions .delete:hover {
+    background: #DC2626;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Centrar columnas */
+.table td:nth-child(5),
+.table th:nth-child(5),
+.table td:last-child,
+.table th:last-child {
+    text-align: center;
+}
+
+/* ========== TABLA DE CULTIVOS ========== */
+.table-responsive-custom table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+.table-responsive-custom th {
+    text-align: left;
+    padding: 14px 12px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.table-responsive-custom td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.92rem;
+    vertical-align: middle;
+}
+
+.table-responsive-custom tbody tr:hover {
+    background: #F9FBF9;
+}
+
+.table-responsive-custom th:nth-child(5),
+.table-responsive-custom td:nth-child(5),
+.table-responsive-custom th:last-child,
+.table-responsive-custom td:last-child {
+    text-align: center;
+}
+
+.modal-body .form-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: 0.3s;
+}
+
+.modal-body .form-group textarea:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.12);
+    outline: none;
+}
+
+.modal-body .form-group input[type="file"] {
+    padding: 10px;
+    background: #FAFAFA;
+}
+
+/* ========== ACCESIBILIDAD BASE ========== */
+html { font-size: 18px; }
+body { line-height: 1.6; }
+
+button,
+.btn-new-custom,
+.btn-save,
+.btn-cancel,
+.btn-auth { min-height: 48px; }
+
+.modal-body .form-group input,
+.modal-body .form-group select,
+.modal-body .form-group textarea { min-height: 48px; font-size: 1rem; }
+
+.table-actions button { width: 44px; height: 44px; }
+
+:focus-visible { outline: 3px solid #F59E0B; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
