@@ -1,5 +1,27 @@
 const mongoose = require('mongoose');
 
+const mensajeVentaSchema = new mongoose.Schema({
+    autorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Usuario',
+        required: true
+    },
+    autorNombre: {
+        type: String,
+        required: true
+    },
+    texto: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 500
+    },
+    fecha: {
+        type: Date,
+        default: Date.now
+    }
+}, { _id: false });
+
 const OfertaSchema = new mongoose.Schema({
     cultivoId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -27,7 +49,7 @@ const OfertaSchema = new mongoose.Schema({
     },
     compradorTelefono: {
         type: String,
-        trim: true
+        default: ''
     },
     cantidadSolicitada: {
         type: Number,
@@ -40,11 +62,14 @@ const OfertaSchema = new mongoose.Schema({
     },
     precioOfrecido: {
         type: Number,
+        required: true,
         min: 0
     },
     mensaje: {
         type: String,
-        trim: true
+        trim: true,
+        maxlength: 400,
+        default: ''
     },
     estado: {
         type: String,
@@ -55,17 +80,33 @@ const OfertaSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    mensajesVenta: [{
-        autorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
-        autorNombre: String,
-        texto: String,
-        fecha: { type: Date, default: Date.now }
-    }],
-    createdAt: {
+    // Campos de pago e historial de acuerdo (PSE Sandbox / Nequi / Contra entrega)
+    metodoPago: {
+        type: String,
+        enum: ['sin_definir', 'contra_entrega', 'nequi_breb', 'pse_wompi'],
+        default: 'sin_definir'
+    },
+    estadoPago: {
+        type: String,
+        enum: ['pendiente', 'reportado', 'pagado', 'fallido'],
+        default: 'pendiente'
+    },
+    referenciaPago: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    wompiTransactionId: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    fechaPago: {
         type: Date,
-        default: Date.now
-    }
-});
+        default: null
+    },
+    mensajesVenta: [mensajeVentaSchema]
+}, { timestamps: true });
 
 module.exports = mongoose.model('Oferta', OfertaSchema);
 

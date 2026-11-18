@@ -1,5 +1,5 @@
 // =====================
-// AGROXPRESS - AUTENTICACIÓN, PERFIL, PAGOS Y COMPROBANTE
+// AGROXPRESS - AUTENTICACIÓN, PERFIL, PÁGINA DE PAGOS, HISTORIAL Y COMPROBANTE
 // =====================
 
 const API_URL = 'http://localhost:3000/api';
@@ -202,6 +202,51 @@ function aplicarPreferenciasAccesibilidad() {
 
 aplicarPreferenciasAccesibilidad();
 
+function asegurarItemPagosSidebar() {
+    document.getElementById('btnCentroPagos')?.remove();
+
+    const sidebarMenu = document.querySelector('.sidebar-menu');
+    if (!sidebarMenu) return;
+
+    let itemPagos = document.getElementById('menuPagos');
+    if (!itemPagos) {
+        itemPagos = document.createElement('li');
+        itemPagos.id = 'menuPagos';
+        itemPagos.setAttribute('role', 'button');
+        itemPagos.setAttribute('tabindex', '0');
+        itemPagos.innerHTML = `<i class="bi bi-credit-card-2-front-fill"></i> Pagos <span class="sidebar-pagos-badge hidden" id="pagosBadge">0</span>`;
+
+        const items = Array.from(sidebarMenu.querySelectorAll('li'));
+        const itemAjustes = items.find((li) => li.id === 'menuAjustes' || li.textContent.trim().toLowerCase().includes('ajustes'));
+        if (itemAjustes) {
+            sidebarMenu.insertBefore(itemPagos, itemAjustes);
+        } else {
+            sidebarMenu.appendChild(itemPagos);
+        }
+    }
+
+    if (window.location.pathname.endsWith('pagos.html')) {
+        itemPagos.classList.add('active');
+    }
+
+    if (!itemPagos.dataset.pagosBound) {
+        itemPagos.dataset.pagosBound = '1';
+        const irAPagos = () => {
+            document.getElementById('sidebar')?.classList.remove('open');
+            if (!window.location.pathname.endsWith('pagos.html')) {
+                window.location.href = 'pagos.html';
+            }
+        };
+        itemPagos.addEventListener('click', irAPagos);
+        itemPagos.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                irAPagos();
+            }
+        });
+    }
+}
+
 function inicializarSidebarYPerfil() {
     const dashboardLayout = document.querySelector('.dashboard');
     const sidebar = document.getElementById('sidebar');
@@ -224,16 +269,20 @@ function inicializarSidebarYPerfil() {
         });
     }
 
+    asegurarItemPagosSidebar();
+
     const rutasMenu = {
         'inicio': 'dashboard.html',
         'dashboard': 'dashboard.html',
         'cultivos': 'cultivos.html',
         'marketplace': 'marketplace.html',
         'comunidad': 'comunidad.html',
+        'pagos': 'pagos.html',
         'ajustes': 'ajustes.html'
     };
 
     document.querySelectorAll('.sidebar-menu li').forEach((item) => {
+        if (item.id === 'menuPagos') return;
         item.addEventListener('click', () => {
             const clave = item.textContent.trim().toLowerCase();
             const destino = rutasMenu[clave];
@@ -476,10 +525,12 @@ function inicializarSidebarYPerfil() {
     }
 }
 
-// ============ CAMPANITA DE OFERTAS, PAGOS PSE Y COMPROBANTE ============
+// ============ CAMPANITA DE OFERTAS, PÁGINA DE PAGOS, HISTORIAL Y COMPROBANTE ============
 let ofertasRecibidasCache = [];
 let ofertasEnviadasCache = [];
 let tabNotifActual = 'recibidas';
+let tabPaginaPagos = 'compras';
+let sesionPseSimuladaActual = null;
 
 function escaparTexto(texto) {
     const div = document.createElement('div');
@@ -487,9 +538,18 @@ function escaparTexto(texto) {
     return div.innerHTML;
 }
 
+function formatearUbicacion(ubic) {
+    if (!ubic) return '';
+    if (typeof ubic === 'string') return ubic;
+    if (typeof ubic === 'object') {
+        return [ubic.vereda, ubic.municipio, ubic.departamento].filter(Boolean).join(', ');
+    }
+    return '';
+}
+
 function textoMetodoPago(metodo) {
     const mapa = {
-        pse_wompi: 'PSE (Wompi)',
+        pse_wompi: 'PSE (Sandbox)',
         nequi_breb: 'Nequi / Bre-B',
         contra_entrega: 'Contra entrega',
         sin_definir: 'Por definir'
@@ -511,24 +571,27 @@ function badgeEstadoPagoHtml(estadoPago, metodoPago) {
     return `<span class="badge badge-warning">💳 Pago pendiente</span>`;
 }
 
-function mostrarAvisoNotif(texto, tipo = 'success') {
-    let box = document.getElementById('notifAvisoBox');
-    const lista = document.getElementById('notifLista');
-    if (!lista) return;
-
-    if (!box) {
-        box = document.createElement('div');
-        box.id = 'notifAvisoBox';
-        box.className = 'form-message';
-        lista.parentNode.insertBefore(box, lista);
+function mostrarAvisoPagos(texto, tipo = 'success') {
+    const pageMsg = document.getElementById('pagosPageMessage');
+    if (pageMsg) {
+        mostrarMensaje(pageMsg, texto, tipo);
+        setTimeout(() => { pageMsg.style.display = 'none'; }, 6500);
     }
 
-    box.textContent = texto;
-    box.className = 'form-message ' + tipo;
-    box.style.display = 'block';
-    setTimeout(() => {
-        if (box) box.style.display = 'none';
-    }, 6500);
+    const listaNotif = document.getElementById('notifLista');
+    if (listaNotif) {
+        let box = document.getElementById('notifAvisoBox');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'notifAvisoBox';
+            box.className = 'form-message';
+            listaNotif.parentNode.insertBefore(box, listaNotif);
+        }
+        box.textContent = texto;
+        box.className = 'form-message ' + tipo;
+        box.style.display = 'block';
+        setTimeout(() => { if (box) box.style.display = 'none'; }, 6500);
+    }
 }
 
 async function cargarNotificaciones() {
@@ -555,12 +618,25 @@ async function cargarNotificaciones() {
             }
         }
 
+        const pagosBadge = document.getElementById('pagosBadge');
+        if (pagosBadge) {
+            const porPagar = ofertasEnviadasCache.filter((o) => o.estado === 'aceptada' && o.estadoPago !== 'pagado').length;
+            if (porPagar > 0) {
+                pagosBadge.textContent = porPagar;
+                pagosBadge.classList.remove('hidden');
+            } else {
+                pagosBadge.classList.add('hidden');
+            }
+        }
+
         renderizarNotificaciones();
+        renderizarPaginaPagos();
     } catch (error) {
-        console.error('Error cargando notificaciones:', error);
+        console.error('Error cargando notificaciones y pagos:', error);
     }
 }
 
+// ---------- VENTANA DE OFERTAS Y CHAT (CAMPANITA) ----------
 function renderizarNotificaciones() {
     const lista = document.getElementById('notifLista');
     if (!lista) return;
@@ -582,9 +658,7 @@ function renderizarNotificaciones() {
         const estadoTexto = o.estado === 'aceptada' ? 'Aceptada' :
                             o.estado === 'rechazada' ? 'Rechazada' : 'Pendiente';
         const precioUnit = Number(o.precioOfrecido || 0);
-        const totalVenta = precioUnit * Number(o.cantidadSolicitada || 0);
         const precioTxt = precioUnit.toLocaleString('es-CO');
-        const totalTxt = totalVenta.toLocaleString('es-CO');
         const idSeguro = escaparTexto(o._id);
 
         const otraPersona = tabNotifActual === 'recibidas'
@@ -608,61 +682,13 @@ function renderizarNotificaciones() {
                 <i class="bi bi-whatsapp"></i> WhatsApp de ventas
             </a>` : '';
 
-        // Zona de Pagos y Comprobante (solo cuando la oferta fue aceptada)
-        let bloquePago = '';
-        if (o.estado === 'aceptada') {
-            const esCompradorTab = tabNotifActual === 'enviadas';
-            const estadoPago = o.estadoPago || 'pendiente';
-            const yaPagado = estadoPago === 'pagado';
-
-            const botonesComprador = (esCompradorTab && !yaPagado) ? `
-                <div class="pago-actions-row">
-                    <button type="button" class="btn-pago-pse" onclick="pagarPorPSE('${idSeguro}')">
-                        🏦 Pagar por PSE (Wompi)
-                    </button>
-                    <button type="button" class="btn-pago-alt" onclick="registrarAcuerdoPago('${idSeguro}', 'contra_entrega')">
-                        💵 Contra entrega
-                    </button>
-                    <button type="button" class="btn-pago-alt" onclick="toggleNequiBox('${idSeguro}')">
-                        📱 Nequi / Bre-B
-                    </button>
-                </div>
-                <div class="pago-nequi-box hidden" id="nequiBox-${idSeguro}">
-                    <input type="text" id="nequiRef-${idSeguro}" maxlength="60" placeholder="Número de comprobante Nequi/Bre-B (opcional)">
-                    <button type="button" class="btn-pago-confirm" onclick="enviarNequiAcuerdo('${idSeguro}')">Reportar</button>
-                </div>
-            ` : '';
-
-            const botonAgricultor = (!esCompradorTab && !yaPagado) ? `
-                <div class="pago-actions-row">
-                    <button type="button" class="btn-pago-confirm" onclick="confirmarPagoAgricultor('${idSeguro}')">
-                        ✅ Confirmar pago recibido
-                    </button>
-                </div>
-            ` : '';
-
-            bloquePago = `
-                <div class="oferta-pago-box">
-                    <div class="oferta-pago-top">
-                        <div>
-                            <div class="oferta-pago-total">Total a pagar: <strong>$${totalTxt} COP</strong></div>
-                            ${o.codigoVerificacion ? `<div class="oferta-codigo-sha">🔒 Sello: <strong>${escaparTexto(o.codigoVerificacion)}</strong></div>` : ''}
-                        </div>
-                        <div>
-                            ${badgeEstadoPagoHtml(estadoPago, o.metodoPago)}
-                        </div>
-                    </div>
-                    ${o.referenciaPago ? `<div class="oferta-pago-ref">Ref: ${escaparTexto(o.referenciaPago)}</div>` : ''}
-                    ${botonesComprador}
-                    ${botonAgricultor}
-                    <div class="pago-comprobante-row">
-                        <button type="button" class="btn-ver-comprobante" onclick="abrirComprobanteVenta('${idSeguro}')">
-                            🧾 Ver / Imprimir Comprobante Verificado
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
+        const accesoPagoRapido = o.estado === 'aceptada' ? `
+            <div class="notif-pago-acceso">
+                ${badgeEstadoPagoHtml(o.estadoPago || 'pendiente', o.metodoPago)}
+                <button type="button" class="btn-ir-pagos-mini" onclick="irAPagosDesdeNotif('${tabNotifActual === 'recibidas' ? 'ventas' : 'compras'}')">
+                    💳 Ir a Pagos / Comprobante
+                </button>
+            </div>` : '';
 
         const chatAceptado = o.estado === 'aceptada' ? `
             <div class="oferta-chat-box">
@@ -695,9 +721,288 @@ function renderizarNotificaciones() {
                 ${o.mensaje ? `<div style="margin-top:4px; color:var(--text-muted);">"${escaparTexto(o.mensaje)}"</div>` : ''}
             </div>
             ${botonesPendiente}
-            ${bloquePago}
+            ${accesoPagoRapido}
             ${chatAceptado}
         </div>`;
+    }).join('');
+}
+
+function irAPagosDesdeNotif(tab) {
+    if (window.location.pathname.endsWith('pagos.html')) {
+        document.getElementById('modalNotificaciones')?.classList.remove('open');
+        cambiarTabPaginaPagos(tab);
+    } else {
+        window.location.href = `pagos.html?tab=${encodeURIComponent(tab)}`;
+    }
+}
+
+// ---------- PÁGINA DEDICADA: PAGOS E HISTORIAL COMPLETO ----------
+function cambiarTabPaginaPagos(tab) {
+    if (!['compras', 'ventas', 'historial'].includes(tab)) tab = 'compras';
+    tabPaginaPagos = tab;
+
+    const btnCompras = document.getElementById('tabPageCompras');
+    const btnVentas = document.getElementById('tabPageVentas');
+    const btnHistorial = document.getElementById('tabPageHistorial');
+
+    if (btnCompras) btnCompras.className = tab === 'compras' ? 'btn-save' : 'btn-cancel';
+    if (btnVentas) btnVentas.className = tab === 'ventas' ? 'btn-save' : 'btn-cancel';
+    if (btnHistorial) btnHistorial.className = tab === 'historial' ? 'btn-save' : 'btn-cancel';
+
+    renderizarPaginaPagos();
+}
+
+function inicializarPaginaPagos() {
+    const lista = document.getElementById('pagosPaginaLista');
+    if (!lista) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['compras', 'ventas', 'historial'].includes(tabParam)) {
+        tabPaginaPagos = tabParam;
+    }
+
+    document.getElementById('tabPageCompras')?.addEventListener('click', () => cambiarTabPaginaPagos('compras'));
+    document.getElementById('tabPageVentas')?.addEventListener('click', () => cambiarTabPaginaPagos('ventas'));
+    document.getElementById('tabPageHistorial')?.addEventListener('click', () => cambiarTabPaginaPagos('historial'));
+    document.getElementById('searchPagos')?.addEventListener('input', renderizarPaginaPagos);
+    document.getElementById('filterEstadoPagos')?.addEventListener('change', renderizarPaginaPagos);
+
+    cambiarTabPaginaPagos(tabPaginaPagos);
+}
+
+function actualizarResumenPaginaPagos() {
+    const comprasAceptadas = ofertasEnviadasCache.filter((o) => o.estado === 'aceptada');
+    const ventasAceptadas = ofertasRecibidasCache.filter((o) => o.estado === 'aceptada');
+
+    const comprasPendientes = comprasAceptadas.filter((o) => o.estadoPago !== 'pagado');
+    const montoPorPagar = comprasPendientes.reduce((acc, o) => acc + (Number(o.precioOfrecido || 0) * Number(o.cantidadSolicitada || 0)), 0);
+
+    const comprasPagadas = comprasAceptadas.filter((o) => o.estadoPago === 'pagado');
+    const totalPagado = comprasPagadas.reduce((acc, o) => acc + (Number(o.precioOfrecido || 0) * Number(o.cantidadSolicitada || 0)), 0);
+
+    const ventasPagadas = ventasAceptadas.filter((o) => o.estadoPago === 'pagado');
+    const totalCobrado = ventasPagadas.reduce((acc, o) => acc + (Number(o.precioOfrecido || 0) * Number(o.cantidadSolicitada || 0)), 0);
+
+    const elPorPagar = document.getElementById('statPorPagar');
+    const elPorPagarMonto = document.getElementById('statPorPagarMonto');
+    const elTotalPagado = document.getElementById('statTotalPagado');
+    const elTotalCobrado = document.getElementById('statTotalCobrado');
+    const elComprobantes = document.getElementById('statComprobantes');
+
+    if (elPorPagar) elPorPagar.textContent = comprasPendientes.length;
+    if (elPorPagarMonto) elPorPagarMonto.textContent = `$${montoPorPagar.toLocaleString('es-CO')} COP`;
+    if (elTotalPagado) elTotalPagado.textContent = `$${totalPagado.toLocaleString('es-CO')}`;
+    if (elTotalCobrado) elTotalCobrado.textContent = `$${totalCobrado.toLocaleString('es-CO')}`;
+    if (elComprobantes) elComprobantes.textContent = comprasAceptadas.length + ventasAceptadas.length;
+}
+
+function cumpleFiltroPago(o, textoBusqueda, filtroEstado) {
+    const estadoPago = o.estadoPago || 'pendiente';
+    if (filtroEstado === 'pendientes' && !['pendiente', 'reportado'].includes(estadoPago)) return false;
+    if (filtroEstado === 'pagado' && estadoPago !== 'pagado') return false;
+    if (filtroEstado === 'fallido' && estadoPago !== 'fallido') return false;
+
+    if (!textoBusqueda) return true;
+    const campo = [
+        o.nombreProducto,
+        o.compradorNombre,
+        o.agricultorId?.nombre,
+        o.codigoVerificacion,
+        o.referenciaPago
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return campo.includes(textoBusqueda);
+}
+
+function renderizarPaginaPagos() {
+    const lista = document.getElementById('pagosPaginaLista');
+    if (!lista) return;
+
+    actualizarResumenPaginaPagos();
+
+    const textoBusqueda = (document.getElementById('searchPagos')?.value || '').trim().toLowerCase();
+    const filtroEstado = document.getElementById('filterEstadoPagos')?.value || '';
+
+    // Pestaña HISTORIAL COMPLETO: une compras y ventas ordenadas por fecha más reciente
+    if (tabPaginaPagos === 'historial') {
+        const compras = ofertasEnviadasCache
+            .filter((o) => o.estado === 'aceptada')
+            .map((o) => ({ ...o, rolHistorial: 'compra' }));
+
+        const ventas = ofertasRecibidasCache
+            .filter((o) => o.estado === 'aceptada')
+            .map((o) => ({ ...o, rolHistorial: 'venta' }));
+
+        const historial = [...compras, ...ventas]
+            .filter((o) => cumpleFiltroPago(o, textoBusqueda, filtroEstado))
+            .sort((a, b) => new Date(b.fechaPago || b.updatedAt || b.createdAt) - new Date(a.fechaPago || a.updatedAt || a.createdAt));
+
+        if (historial.length === 0) {
+            lista.innerHTML = `
+                <div class="marketplace-empty">
+                    <i class="bi bi-clock-history" style="font-size:2.2rem; display:block; margin-bottom:10px;"></i>
+                    No hay movimientos en tu historial con ese filtro todavía.
+                </div>`;
+            return;
+        }
+
+        lista.innerHTML = `
+            <div class="table-container-custom" style="overflow-x:auto;">
+                <table class="pagos-historial-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Producto</th>
+                            <th>Contraparte</th>
+                            <th>Método y Referencia</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Comprobante</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${historial.map((o) => {
+                            const total = Number(o.precioOfrecido || 0) * Number(o.cantidadSolicitada || 0);
+                            const fecha = new Date(o.fechaPago || o.updatedAt || o.createdAt).toLocaleDateString('es-CO', {
+                                year: 'numeric', month: 'short', day: 'numeric'
+                            });
+                            const contraparte = o.rolHistorial === 'compra'
+                                ? (o.agricultorId?.nombre || 'Productor')
+                                : (o.compradorNombre || 'Comprador');
+                            const idSeguro = escaparTexto(o._id);
+
+                            return `
+                                <tr>
+                                    <td>${escaparTexto(fecha)}</td>
+                                    <td>
+                                        <span class="pagos-role-pill ${o.rolHistorial}">
+                                            ${o.rolHistorial === 'compra' ? '🛒 Compra' : '🌾 Venta'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>${escaparTexto(o.nombreProducto)}</strong>
+                                        <div style="font-size:0.8rem; color:var(--text-muted);">
+                                            ${o.cantidadSolicitada} ${escaparTexto(o.unidadMedida || 'kg')}
+                                            ${o.codigoVerificacion ? `• ${escaparTexto(o.codigoVerificacion)}` : ''}
+                                        </div>
+                                    </td>
+                                    <td>${escaparTexto(contraparte)}</td>
+                                    <td>
+                                        <div>${escaparTexto(textoMetodoPago(o.metodoPago))}</div>
+                                        ${o.referenciaPago ? `<small style="color:var(--text-muted);">${escaparTexto(o.referenciaPago)}</small>` : ''}
+                                    </td>
+                                    <td><strong>$${total.toLocaleString('es-CO')} COP</strong></td>
+                                    <td>${badgeEstadoPagoHtml(o.estadoPago || 'pendiente', o.metodoPago)}</td>
+                                    <td>
+                                        <button type="button" class="btn-ver-comprobante" onclick="abrirComprobanteVenta('${idSeguro}')">
+                                            🧾 Ver PDF
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        return;
+    }
+
+    // Pestañas COMPRAS POR PAGAR o COBROS DE MIS VENTAS
+    const origen = tabPaginaPagos === 'compras' ? ofertasEnviadasCache : ofertasRecibidasCache;
+    const listaFiltrada = origen
+        .filter((o) => o.estado === 'aceptada')
+        .filter((o) => cumpleFiltroPago(o, textoBusqueda, filtroEstado))
+        .sort((a, b) => {
+            const aPag = a.estadoPago === 'pagado' ? 1 : 0;
+            const bPag = b.estadoPago === 'pagado' ? 1 : 0;
+            if (aPag !== bPag) return aPag - bPag;
+            return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+        });
+
+    if (listaFiltrada.length === 0) {
+        lista.innerHTML = `
+            <div class="marketplace-empty">
+                <i class="bi bi-receipt" style="font-size:2.2rem; display:block; margin-bottom:10px;"></i>
+                ${tabPaginaPagos === 'compras'
+                    ? 'No hay compras aceptadas con ese filtro. Cuando un agricultor acepte tu oferta, podrás pagarla aquí.'
+                    : 'No hay ventas aceptadas con ese filtro todavía.'}
+            </div>`;
+        return;
+    }
+
+    lista.innerHTML = listaFiltrada.map((o) => {
+        const precioUnit = Number(o.precioOfrecido || 0);
+        const totalVenta = precioUnit * Number(o.cantidadSolicitada || 0);
+        const precioTxt = precioUnit.toLocaleString('es-CO');
+        const totalTxt = totalVenta.toLocaleString('es-CO');
+        const idSeguro = escaparTexto(o._id);
+        const estadoPago = o.estadoPago || 'pendiente';
+        const yaPagado = estadoPago === 'pagado';
+
+        const fechaTxt = new Date(o.fechaPago || o.updatedAt || o.createdAt).toLocaleString('es-CO', {
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        const contraparte = tabPaginaPagos === 'compras'
+            ? `Productor: <strong>${escaparTexto(o.agricultorId?.nombre || 'Agricultor')}</strong>`
+            : `Comprador: <strong>${escaparTexto(o.compradorNombre || 'Comprador')}</strong>`;
+
+        const accionesComprador = (tabPaginaPagos === 'compras' && !yaPagado) ? `
+            <div class="pago-actions-row">
+                <button type="button" class="btn-pago-pse" onclick="pagarPorPSE('${idSeguro}')">
+                    🏦 Pagar por PSE (Sandbox)
+                </button>
+                <button type="button" class="btn-pago-alt" onclick="registrarAcuerdoPago('${idSeguro}', 'contra_entrega')">
+                    💵 Contra entrega
+                </button>
+                <button type="button" class="btn-pago-alt" onclick="toggleNequiBox('${idSeguro}')">
+                    📱 Nequi / Bre-B
+                </button>
+            </div>
+            <div class="pago-nequi-box hidden" id="nequiBox-${idSeguro}">
+                <input type="text" id="nequiRef-${idSeguro}" maxlength="60" placeholder="Número de comprobante Nequi/Bre-B (opcional)">
+                <button type="button" class="btn-pago-confirm" onclick="enviarNequiAcuerdo('${idSeguro}')">Reportar</button>
+            </div>` : '';
+
+        const accionesVendedor = (tabPaginaPagos === 'ventas' && !yaPagado) ? `
+            <div class="pago-actions-row">
+                <button type="button" class="btn-pago-confirm" onclick="confirmarPagoAgricultor('${idSeguro}')">
+                    ✅ Confirmar pago recibido
+                </button>
+            </div>` : '';
+
+        return `
+            <article class="pago-card ${yaPagado ? 'pagado' : ''}">
+                <div class="oferta-pago-top">
+                    <div>
+                        <div class="pago-card-title">🌱 ${escaparTexto(o.nombreProducto)} (${o.cantidadSolicitada} ${escaparTexto(o.unidadMedida || 'kg')})</div>
+                        <div class="pago-card-sub">${contraparte} • $${precioTxt} COP / ${escaparTexto(o.unidadMedida || 'kg')} • ${escaparTexto(fechaTxt)}</div>
+                    </div>
+                    <div>
+                        ${badgeEstadoPagoHtml(estadoPago, o.metodoPago)}
+                    </div>
+                </div>
+
+                <div class="pago-card-resumen">
+                    <div class="oferta-pago-total">Total: <strong>$${totalTxt} COP</strong></div>
+                    ${o.codigoVerificacion ? `<div class="oferta-codigo-sha">🔒 Sello: <strong>${escaparTexto(o.codigoVerificacion)}</strong></div>` : ''}
+                </div>
+
+                ${o.referenciaPago ? `<div class="oferta-pago-ref">Referencia: <strong>${escaparTexto(o.referenciaPago)}</strong></div>` : ''}
+
+                ${accionesComprador}
+                ${accionesVendedor}
+
+                <div class="pago-comprobante-row">
+                    <button type="button" class="btn-ver-comprobante" onclick="abrirComprobanteVenta('${idSeguro}')">
+                        🧾 Ver / Imprimir Comprobante Verificado
+                    </button>
+                </div>
+            </article>
+        `;
     }).join('');
 }
 
@@ -716,7 +1021,7 @@ async function responderOfertaUI(ofertaId, estado) {
         if (!res.ok) throw new Error(data.mensaje || 'No se pudo responder la oferta');
         await cargarNotificaciones();
     } catch (error) {
-        mostrarAvisoNotif('❌ ' + error.message, 'error');
+        mostrarAvisoPagos('❌ ' + error.message, 'error');
     }
 }
 
@@ -741,7 +1046,7 @@ async function enviarMensajeOfertaUI(event, ofertaId) {
         input.value = '';
         await cargarNotificaciones();
     } catch (error) {
-        mostrarAvisoNotif('❌ ' + error.message, 'error');
+        mostrarAvisoPagos('❌ ' + error.message, 'error');
     }
 }
 
@@ -774,10 +1079,10 @@ async function registrarAcuerdoPago(ofertaId, metodoPago, referenciaPago = '') {
         const data = await res.json();
         if (!res.ok) throw new Error(data.mensaje || 'No se pudo registrar el método de pago');
 
-        mostrarAvisoNotif('✅ ' + (data.mensaje || 'Método de pago guardado'), 'success');
+        mostrarAvisoPagos('✅ ' + (data.mensaje || 'Método de pago guardado'), 'success');
         await cargarNotificaciones();
     } catch (error) {
-        mostrarAvisoNotif('❌ ' + error.message, 'error');
+        mostrarAvisoPagos('❌ ' + error.message, 'error');
     }
 }
 
@@ -791,10 +1096,124 @@ async function confirmarPagoAgricultor(ofertaId) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.mensaje || 'No se pudo confirmar el pago');
 
-        mostrarAvisoNotif('✅ ¡Pago confirmado! Ya aparece como Pagado en el Comprobante.', 'success');
+        mostrarAvisoPagos('✅ ¡Pago confirmado! Ya aparece como Pagado en tu Historial y Comprobante.', 'success');
         await cargarNotificaciones();
     } catch (error) {
-        mostrarAvisoNotif('❌ ' + error.message, 'error');
+        mostrarAvisoPagos('❌ ' + error.message, 'error');
+    }
+}
+
+// ============ SIMULADOR PSE SANDBOX ACADÉMICO LOCAL ============
+function asegurarModalSimuladorPSE() {
+    let modal = document.getElementById('modalSimuladorPSE');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'modalSimuladorPSE';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content sim-pse-modal">
+            <div class="modal-header">
+                <h2>🏦 Pasarela PSE • Modo Sandbox</h2>
+                <button type="button" class="close-modal" id="closeSimPseModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body" id="simPseBody"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const cerrar = () => modal.classList.remove('open');
+    document.getElementById('closeSimPseModal').addEventListener('click', cerrar);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) cerrar();
+    });
+
+    return modal;
+}
+
+function abrirModalSimuladorPSE(datos) {
+    sesionPseSimuladaActual = datos;
+    const modal = asegurarModalSimuladorPSE();
+    const body = document.getElementById('simPseBody');
+    const totalTxt = Number(datos.totalCOP || 0).toLocaleString('es-CO');
+
+    body.innerHTML = `
+        <div class="sim-pse-banner">
+            🛡️ <strong>Entorno Académico de Pruebas (Sin dinero ni datos reales)</strong><br>
+            Tu servidor local generó esta sesión PSE con firma SHA-256 de integridad.
+        </div>
+
+        <div class="sim-pse-resumen">
+            <div><span>Producto:</span> <strong>${escaparTexto(datos.producto)}</strong></div>
+            <div><span>Total a pagar:</span> <strong class="sim-pse-total">$${totalTxt} COP</strong></div>
+            <div><span>Referencia:</span> <code>${escaparTexto(datos.reference)}</code></div>
+            <div><span>ID Transacción:</span> <code>${escaparTexto(datos.transactionIdSimulado)}</code></div>
+            <div><span>Firma SHA-256:</span> <code>${escaparTexto((datos.signatureIntegrity || '').slice(0, 22))}...</code></div>
+        </div>
+
+        <div class="form-group" style="margin-top:12px;">
+            <label for="simPseBanco">Banco de prueba (PSE ficticio)</label>
+            <select id="simPseBanco">
+                <option value="Banco Agrario (Prueba PSE)">Banco Agrario (Prueba PSE)</option>
+                <option value="Bancolombia (Prueba PSE)">Bancolombia (Prueba PSE)</option>
+                <option value="Nequi (Prueba PSE)">Nequi (Prueba PSE)</option>
+                <option value="Davivienda (Prueba PSE)">Davivienda (Prueba PSE)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="simPsePersona">Tipo de persona (Prueba)</label>
+            <select id="simPsePersona">
+                <option value="natural">Persona Natural (CC de prueba: 1000000000)</option>
+                <option value="juridica">Persona Jurídica (NIT de prueba: 900000000)</option>
+            </select>
+        </div>
+
+        <div class="sim-pse-actions">
+            <button type="button" class="btn-save" id="btnSimPseAprobar" onclick="ejecutarSimulacionPSE('APPROVED')">
+                ✅ Simular Pago Aprobado
+            </button>
+            <button type="button" class="btn-rechazar-oferta" id="btnSimPseRechazar" onclick="ejecutarSimulacionPSE('DECLINED')">
+                ❌ Simular Pago Rechazado
+            </button>
+        </div>
+    `;
+
+    modal.classList.add('open');
+}
+
+async function ejecutarSimulacionPSE(resultadoSimulado) {
+    if (!sesionPseSimuladaActual) return;
+    const banco = document.getElementById('simPseBanco')?.value || 'Banco Simulado PSE';
+    const token = localStorage.getItem('token');
+
+    try {
+        const res = await fetch(`${API_URL}/ofertas/${encodeURIComponent(sesionPseSimuladaActual.ofertaId)}/pago-wompi/verificar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                transactionId: sesionPseSimuladaActual.transactionIdSimulado,
+                resultadoSimulado,
+                bancoSimulado: banco
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.mensaje || 'No se pudo completar la simulación PSE');
+
+        document.getElementById('modalSimuladorPSE')?.classList.remove('open');
+
+        if (data.estadoPago === 'pagado') {
+            mostrarAvisoPagos('✅ ¡Pago PSE aprobado en Sandbox! Ya aparece en tu Historial y Comprobante SHA-256.', 'success');
+        } else {
+            mostrarAvisoPagos('❌ Pago PSE simulado rechazado (prueba de fallo controlada). Puedes intentar de nuevo.', 'error');
+        }
+
+        await cargarNotificaciones();
+    } catch (error) {
+        mostrarAvisoPagos('❌ ' + error.message, 'error');
     }
 }
 
@@ -810,11 +1229,12 @@ async function pagarPorPSE(ofertaId) {
         });
         const data = await res.json();
         if (!res.ok) {
-            if (data.requiereConfiguracion) {
-                mostrarAvisoNotif('🔑 ' + data.mensaje + ' Mientras tanto puedes usar Contra entrega o Nequi / Bre-B.', 'error');
-                return;
-            }
             throw new Error(data.mensaje || 'No se pudo iniciar el pago PSE');
+        }
+
+        if (data.modo === 'simulador_academico') {
+            abrirModalSimuladorPSE(data);
+            return;
         }
 
         const returnUrl = window.location.origin + window.location.pathname + '?wompiOferta=' + encodeURIComponent(ofertaId);
@@ -829,7 +1249,7 @@ async function pagarPorPSE(ofertaId) {
 
         window.location.href = `${data.checkoutUrl}?${params.toString()}`;
     } catch (error) {
-        mostrarAvisoNotif('❌ ' + error.message, 'error');
+        mostrarAvisoPagos('❌ ' + error.message, 'error');
     }
 }
 
@@ -839,19 +1259,6 @@ async function verificarRetornoWompi() {
     const txId = params.get('id');
 
     if (!wompiOferta || !txId) return;
-
-    const modalNotif = document.getElementById('modalNotificaciones');
-    const tabRec = document.getElementById('tabRecibidas');
-    const tabEnv = document.getElementById('tabEnviadas');
-
-    if (modalNotif) {
-        tabNotifActual = 'enviadas';
-        if (tabEnv && tabRec) {
-            tabEnv.className = 'btn-save';
-            tabRec.className = 'btn-cancel';
-        }
-        modalNotif.classList.add('open');
-    }
 
     const token = localStorage.getItem('token');
     try {
@@ -874,16 +1281,16 @@ async function verificarRetornoWompi() {
         if (!res.ok) throw new Error(data.mensaje || 'No se pudo verificar el pago PSE');
 
         if (data.estadoPago === 'pagado') {
-            mostrarAvisoNotif('✅ ¡Pago por PSE aprobado en Wompi! Ya puedes descargar tu Comprobante Verificado.', 'success');
+            mostrarAvisoPagos('✅ ¡Pago por PSE aprobado! Ya puedes descargar tu Comprobante Verificado.', 'success');
         } else if (data.estadoPago === 'fallido') {
-            mostrarAvisoNotif('❌ El pago por PSE fue rechazado o cancelado en el banco. Puedes intentar de nuevo.', 'error');
+            mostrarAvisoPagos('❌ El pago por PSE fue rechazado o cancelado en el banco. Puedes intentar de nuevo.', 'error');
         } else {
-            mostrarAvisoNotif('⏳ Tu pago PSE está en proceso de confirmación bancaria.', 'success');
+            mostrarAvisoPagos('⏳ Tu pago PSE está en proceso de confirmación bancaria.', 'success');
         }
 
         await cargarNotificaciones();
     } catch (error) {
-        mostrarAvisoNotif('❌ ' + error.message, 'error');
+        mostrarAvisoPagos('❌ ' + error.message, 'error');
     }
 }
 
@@ -955,7 +1362,8 @@ async function abrirComprobanteVenta(ofertaId) {
             ? new Date(c.fechaPago).toLocaleString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             : 'Pendiente';
 
-        const fincaTxt = [c.agricultor?.finca, c.agricultor?.ubicacion].filter(Boolean).join(' • ');
+        const ubicTxt = formatearUbicacion(c.agricultor?.ubicacion);
+        const fincaTxt = [c.agricultor?.finca, ubicTxt].filter(Boolean).join(' • ');
 
         cuerpo.innerHTML = `
             <div class="comprobante-paper">
@@ -1012,7 +1420,7 @@ async function abrirComprobanteVenta(ofertaId) {
                     <div><span>Método de pago:</span> <strong>${escaparTexto(textoMetodoPago(c.metodoPago))}</strong></div>
                     <div><span>Estado del pago:</span> ${badgeEstadoPagoHtml(c.estadoPago, c.metodoPago)}</div>
                     ${c.referenciaPago ? `<div><span>Referencia:</span> <strong>${escaparTexto(c.referenciaPago)}</strong></div>` : ''}
-                    ${c.wompiTransactionId ? `<div><span>ID Transacción Wompi:</span> <strong>${escaparTexto(c.wompiTransactionId)}</strong></div>` : ''}
+                    ${c.wompiTransactionId ? `<div><span>ID Transacción PSE:</span> <strong>${escaparTexto(c.wompiTransactionId)}</strong></div>` : ''}
                     <div><span>Fecha de pago:</span> <strong>${escaparTexto(fechaPagoTxt)}</strong></div>
                 </div>
 
@@ -1033,6 +1441,8 @@ async function abrirComprobanteVenta(ofertaId) {
 }
 
 function inicializarNotificaciones() {
+    asegurarItemPagosSidebar();
+
     const btnNotif = document.getElementById('btnNotificaciones');
     const modalNotif = document.getElementById('modalNotificaciones');
     const closeNotif = document.getElementById('closeNotifModal');
@@ -1040,34 +1450,34 @@ function inicializarNotificaciones() {
     const tabRec = document.getElementById('tabRecibidas');
     const tabEnv = document.getElementById('tabEnviadas');
 
-    if (!btnNotif || !modalNotif) return;
+    if (btnNotif && modalNotif) {
+        const abrirNotif = () => {
+            cargarNotificaciones();
+            modalNotif.classList.add('open');
+        };
+        const cerrarNotif = () => modalNotif.classList.remove('open');
 
-    const abrirNotif = () => {
-        cargarNotificaciones();
-        modalNotif.classList.add('open');
-    };
-    const cerrarNotif = () => modalNotif.classList.remove('open');
-
-    btnNotif.addEventListener('click', abrirNotif);
-    if (closeNotif) closeNotif.addEventListener('click', cerrarNotif);
-    if (btnCerrarNotif) btnCerrarNotif.addEventListener('click', cerrarNotif);
-    modalNotif.addEventListener('click', (e) => {
-        if (e.target === modalNotif) cerrarNotif();
-    });
-
-    if (tabRec && tabEnv) {
-        tabRec.addEventListener('click', () => {
-            tabNotifActual = 'recibidas';
-            tabRec.className = 'btn-save';
-            tabEnv.className = 'btn-cancel';
-            renderizarNotificaciones();
+        btnNotif.addEventListener('click', abrirNotif);
+        if (closeNotif) closeNotif.addEventListener('click', cerrarNotif);
+        if (btnCerrarNotif) btnCerrarNotif.addEventListener('click', cerrarNotif);
+        modalNotif.addEventListener('click', (e) => {
+            if (e.target === modalNotif) cerrarNotif();
         });
-        tabEnv.addEventListener('click', () => {
-            tabNotifActual = 'enviadas';
-            tabEnv.className = 'btn-save';
-            tabRec.className = 'btn-cancel';
-            renderizarNotificaciones();
-        });
+
+        if (tabRec && tabEnv) {
+            tabRec.addEventListener('click', () => {
+                tabNotifActual = 'recibidas';
+                tabRec.className = 'btn-save';
+                tabEnv.className = 'btn-cancel';
+                renderizarNotificaciones();
+            });
+            tabEnv.addEventListener('click', () => {
+                tabNotifActual = 'enviadas';
+                tabEnv.className = 'btn-save';
+                tabRec.className = 'btn-cancel';
+                renderizarNotificaciones();
+            });
+        }
     }
 
     cargarNotificaciones();

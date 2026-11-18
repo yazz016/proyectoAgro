@@ -7,28 +7,29 @@ const {
     obtenerOfertasEnviadas,
     responderOferta,
     agregarMensajeOferta,
+    registrarMetodoPago,
+    confirmarPagoRecibido,
+    iniciarPagoWompiPSE,
+    verificarPagoWompi,
+    obtenerComprobanteVenta,
     obtenerRegistroVentas
 } = require('../controllers/ofertaController');
 
 const { verificarToken } = require('../middleware/auth');
 
-// Enviar una oferta desde el Marketplace
 router.post('/', verificarToken, crearOferta);
-
-// Ver ofertas que llegaron al agricultor (campanita)
 router.get('/recibidas', verificarToken, obtenerOfertasRecibidas);
-
-// Ver ofertas que envió el comprador
 router.get('/enviadas', verificarToken, obtenerOfertasEnviadas);
-
-// Consultar el libro inalterable de ventas y ganancias
 router.get('/registro-ventas', verificarToken, obtenerRegistroVentas);
-
-// Aceptar o rechazar una oferta
 router.put('/:id/estado', verificarToken, responderOferta);
-
-// Chat privado dentro de una oferta aceptada
 router.post('/:id/mensajes', verificarToken, agregarMensajeOferta);
+
+// Rutas de Pagos (PSE Sandbox / Nequi / Contra entrega) y Comprobante SHA-256
+router.put('/:id/pago-acuerdo', verificarToken, registrarMetodoPago);
+router.put('/:id/pago-confirmar', verificarToken, confirmarPagoRecibido);
+router.post('/:id/pago-wompi', verificarToken, iniciarPagoWompiPSE);
+router.post('/:id/pago-wompi/verificar', verificarToken, verificarPagoWompi);
+router.get('/:id/comprobante', verificarToken, obtenerComprobanteVenta);
 
 module.exports = router;
 

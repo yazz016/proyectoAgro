@@ -38,6 +38,37 @@ const crearPublicacion = async (req, res) => {
     }
 };
 
+// Editar publicación propia
+const editarPublicacion = async (req, res) => {
+    try {
+        const { titulo, contenido, categoria } = req.body;
+        if (!titulo || !titulo.trim() || !contenido || !contenido.trim()) {
+            return res.status(400).json({ mensaje: 'Escribe título y mensaje' });
+        }
+
+        const pub = await Publicacion.findById(req.params.id);
+        if (!pub) {
+            return res.status(404).json({ mensaje: 'Publicación no encontrada' });
+        }
+
+        if (pub.autorId.toString() !== req.usuario.id) {
+            return res.status(403).json({ mensaje: 'No autorizado' });
+        }
+
+        const categoriasValidas = ['Consejo', 'Clima y Plagas', 'Pregunta'];
+        if (categoria && categoriasValidas.includes(categoria)) {
+            pub.categoria = categoria;
+        }
+        pub.titulo = titulo.trim();
+        pub.contenido = contenido.trim();
+
+        await pub.save();
+        res.json(pub);
+    } catch (error) {
+        res.status(400).json({ mensaje: error.message });
+    }
+};
+
 // Dar o quitar "Me sirvió"
 const toggleLike = async (req, res) => {
     try {
@@ -109,6 +140,7 @@ const eliminarPublicacion = async (req, res) => {
 module.exports = {
     obtenerPublicaciones,
     crearPublicacion,
+    editarPublicacion,
     toggleLike,
     agregarComentario,
     eliminarPublicacion

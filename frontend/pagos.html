@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroXpress | Pagos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div class="dashboard">
+
+        <!-- ========== SIDEBAR ========== -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="AgroXpress" class="logo-img">
+                <span>
+                    <span class="text-white">Agro</span><span class="text-green">Xpress</span>
+                </span>
+            </div>
+            <ul class="sidebar-menu">
+                <li id="menuInicio"><i class="bi bi-house-door-fill"></i> Inicio</li>
+                <li id="menuCultivos"><i class="bi bi-tree-fill"></i> Cultivos</li>
+                <li id="menuMarketplace"><i class="bi bi-shop"></i> Marketplace</li>
+                <li id="menuComunidad"><i class="bi bi-people-fill"></i> Comunidad</li>
+                <li class="active" id="menuPagos"><i class="bi bi-credit-card-2-front-fill"></i> Pagos <span class="sidebar-pagos-badge hidden" id="pagosBadge">0</span></li>
+                <li id="menuAjustes"><i class="bi bi-gear"></i> Ajustes</li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-info" id="userInfoBtn" role="button" tabindex="0" title="Ver mi perfil">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div>
+                        <div class="user-name" id="userName">Usuario</div>
+                        <div class="user-role" id="userRole">Agricultor</div>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btnLogout">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                </button>
+                <div class="sidebar-version">AgroXpress v2.0</div>
+            </div>
+        </nav>
+
+        <!-- ========== MAIN CONTENT ========== -->
+        <div class="main-content">
+
+            <!-- Topbar -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" id="menuToggle" aria-label="Abrir o cerrar menú">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div>
+                        <h1 class="dashboard-title">Pagos</h1>
+                        <p class="dashboard-subtitle">Paga tus compras (PSE Sandbox, Nequi, Contra entrega) y consulta tu historial con sello SHA-256</p>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button type="button" class="notif-btn" id="btnNotificaciones" aria-label="Ver notificaciones y ofertas" title="Ofertas y mensajes">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="notif-badge hidden" id="notifBadge">0</span>
+                    </button>
+                    <span class="welcome">Hola, <strong id="welcomeName">Usuario</strong> 👋</span>
+                </div>
+            </div>
+
+            <!-- Tarjetas de resumen de pagos -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="number" id="statPorPagar">0</div>
+                    <div class="label">Compras por pagar</div>
+                    <div class="pagos-summary-sub" id="statPorPagarMonto">$0 COP</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number" id="statTotalPagado">$0</div>
+                    <div class="label">Total pagado en compras</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number" id="statTotalCobrado">$0</div>
+                    <div class="label">Total cobrado en ventas</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number" id="statComprobantes">0</div>
+                    <div class="label">Comprobantes SHA-256</div>
+                </div>
+            </div>
+
+            <!-- Mensaje de aviso -->
+            <div id="pagosPageMessage" class="form-message"></div>
+
+            <!-- Pestañas y filtros -->
+            <div class="table-container-custom" style="margin-bottom:20px;">
+                <div class="pagos-tabs-page">
+                    <button type="button" class="btn-save" id="tabPageCompras">🛒 Compras por pagar</button>
+                    <button type="button" class="btn-cancel" id="tabPageVentas">🌾 Cobros de mis ventas</button>
+                    <button type="button" class="btn-cancel" id="tabPageHistorial">📜 Historial completo</button>
+                </div>
+
+                <div class="filters-bar-custom" style="margin-top:14px;">
+                    <div class="search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchPagos" placeholder="Buscar por producto, comprador, productor o código AGRO-..." aria-label="Buscar en pagos e historial">
+                    </div>
+                    <select id="filterEstadoPagos" aria-label="Filtrar por estado de pago">
+                        <option value="">Todos los estados</option>
+                        <option value="pendientes">Pendientes o por confirmar</option>
+                        <option value="pagado">Pagados / Confirmados</option>
+                        <option value="fallido">PSE rechazado</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Lista / Historial dinámico -->
+            <div id="pagosPaginaLista" class="pagos-pagina-lista">
+                <div class="marketplace-empty">
+                    <i class="bi bi-hourglass-split" style="font-size:2rem; display:block; margin-bottom:8px;"></i>
+                    Cargando tus pagos e historial...
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========== MODAL NOTIFICACIONES / OFERTAS Y CHAT ========== -->
+    <div class="modal-overlay" id="modalNotificaciones">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-header">
+                <h2><i class="bi bi-bell-fill"></i> Ofertas y acuerdos</h2>
+                <button class="close-modal" id="closeNotifModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <button type="button" class="btn-save" id="tabRecibidas" style="flex:1;">Ofertas recibidas</button>
+                    <button type="button" class="btn-cancel" id="tabEnviadas" style="flex:1;">Mis ofertas enviadas</button>
+                </div>
+                <div id="notifLista" class="notif-list">
+                    <p class="text-muted text-center">Cargando ofertas...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" id="btnCerrarNotif">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL PERFIL DEL USUARIO ========== -->
+    <div class="modal-overlay" id="modalPerfil">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="bi bi-person-circle"></i> Mi Perfil</h2>
+                <button class="close-modal" id="closePerfilModal" aria-label="Cerrar perfil"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-header-box">
+                    <div class="profile-avatar-lg" id="perfilAvatarLg">U</div>
+                    <div>
+                        <h3 id="perfilNombre">Usuario</h3>
+                        <span class="badge badge-success" id="perfilRolBadge">Agricultor</span>
+                        <div>
+                            <label for="inputFotoPerfil" class="btn-change-photo">
+                                <i class="bi bi-camera-fill"></i> Cambiar foto
+                            </label>
+                            <input type="file" id="inputFotoPerfil" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-details-list">
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-envelope-fill"></i> Correo electrónico</span>
+                        <span class="detail-value" id="perfilEmail">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-person-badge-fill"></i> Tipo de cuenta</span>
+                        <span class="detail-value" id="perfilTipo">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-whatsapp" style="color:#16A34A;"></i> WhatsApp de ventas / Business (opcional)</span>
+                        <div class="whatsapp-input-row">
+                            <input type="tel" id="inputWhatsapp" placeholder="Ej: 573001234567">
+                            <button type="button" id="btnGuardarWhatsapp">Guardar</button>
+                        </div>
+                        <small style="color:var(--text-muted); font-size:0.78rem;">🔒 Solo úsalo si tienes línea de ventas. Nunca se muestra al público.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-save" id="btnCerrarPerfil">Listo</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        if (!verificarSesion()) {}
+
+        const usuario = obtenerUsuario();
+        if (usuario) {
+            const nombre = usuario.nombre || 'Usuario';
+            document.getElementById('userName').textContent = nombre;
+            document.getElementById('userAvatar').textContent = nombre.charAt(0).toUpperCase();
+            document.getElementById('welcomeName').textContent = nombre;
+            const roles = { agricultor: '👨‍🌾 Agricultor', comprador: '🛒 Comprador', estudiante: '📚 Estudiante' };
+            document.getElementById('userRole').textContent = roles[usuario.tipo] || 'Agricultor';
+        }
+
+        document.getElementById('btnLogout')?.addEventListener('click', cerrarSesion);
+        inicializarSidebarYPerfil();
+        if (typeof inicializarPaginaPagos === 'function') {
+            inicializarPaginaPagos();
+        }
+        if (typeof inicializarNotificaciones === 'function') {
+            inicializarNotificaciones();
+        }
+    </script>
+
+</body>
+</html>
+

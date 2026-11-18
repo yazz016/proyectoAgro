@@ -70,7 +70,7 @@
             <!-- Cabecera y botón principal -->
             <div class="page-header-custom">
                 <div class="header-title">
-                    <h1><i class="bi bi-people-fill"></i> Plaza del Campo</h1>
+                    <h1><i class="bi bi-people-fill"></i> Foro del Campo</h1>
                     <p>Comparte tu experiencia o haz una pregunta a otros agricultores y estudiantes</p>
                 </div>
                 <div class="page-actions">
@@ -98,11 +98,11 @@
         </div>
     </div>
 
-    <!-- ========== MODAL NUEVA PUBLICACIÓN ========== -->
+    <!-- ========== MODAL NUEVA / EDITAR PUBLICACIÓN ========== -->
     <div class="modal-overlay" id="modalPublicacion">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="bi bi-megaphone-fill"></i> Nueva publicación</h2>
+                <h2 id="pubModalTitle"><i class="bi bi-megaphone-fill"></i> Nueva publicación</h2>
                 <button class="close-modal" id="closePubModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
             </div>
             <form id="formPublicacion">
@@ -126,7 +126,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" id="cancelPubModal">Cancelar</button>
-                    <button type="submit" class="btn-save">Publicar</button>
+                    <button type="submit" class="btn-save" id="btnSubmitPub">Publicar</button>
                 </div>
             </form>
         </div>
@@ -220,10 +220,14 @@
 
         let publicaciones = [];
         let categoriaFiltro = '';
+        let editandoId = null;
+
         const feed = document.getElementById('comunidadFeed');
         const msgBox = document.getElementById('comunidadMessage');
         const modalPub = document.getElementById('modalPublicacion');
         const formPub = document.getElementById('formPublicacion');
+        const pubModalTitle = document.getElementById('pubModalTitle');
+        const btnSubmitPub = document.getElementById('btnSubmitPub');
 
         function mostrarAvisoComunidad(texto, tipo) {
             mostrarMensaje(msgBox, texto, tipo);
@@ -265,16 +269,24 @@
             }
 
             const roles = { agricultor: '👨‍🌾 Agricultor', comprador: '🛒 Comprador', estudiante: '📚 Estudiante' };
+            const miId = String(usuario?.id || usuario?._id || '');
 
             feed.innerHTML = filtradas.map((p) => {
-                const yaDioLike = p.likes?.some((id) => id === usuario?.id);
+                const yaDioLike = p.likes?.some((id) => String(id) === miId);
                 const cantidadLikes = p.likes?.length || 0;
+                const cantidadRespuestas = p.comentarios?.length || 0;
                 const fecha = new Date(p.createdAt).toLocaleDateString('es-CO', {
                     day: 'numeric', month: 'short', year: 'numeric'
                 });
-                const esMio = p.autorId === usuario?.id;
+                const esMio = String(p.autorId) === miId;
                 const badgeCat = p.categoria === 'Clima y Plagas' ? 'badge-warning' :
                                  p.categoria === 'Pregunta' ? 'badge-info' : 'badge-success';
+
+                const badgeEstadoPregunta = p.categoria === 'Pregunta'
+                    ? (cantidadRespuestas > 0
+                        ? `<span class="badge badge-pregunta-resuelta">✅ Respondida</span>`
+                        : `<span class="badge badge-pregunta-pendiente">⏳ Esperando ayuda</span>`)
+                    : '';
 
                 return `
                 <article class="post-card">
@@ -286,7 +298,10 @@
                                 <div style="font-size:0.82rem; color:var(--text-muted);">${roles[p.autorTipo] || 'Usuario'} • ${fecha}</div>
                             </div>
                         </div>
-                        <span class="badge ${badgeCat}">${escaparTexto(p.categoria)}</span>
+                        <div class="post-badges">
+                            ${badgeEstadoPregunta}
+                            <span class="badge ${badgeCat}">${escaparTexto(p.categoria)}</span>
+                        </div>
                     </div>
 
                     <h3 class="post-title">${escaparTexto(p.titulo)}</h3>
@@ -299,12 +314,17 @@
                         </button>
                         <button type="button" class="btn-reply-post" onclick="toggleComentarios('${p._id}')">
                             <i class="bi bi-chat-left-text"></i>
-                            Respuestas (${p.comentarios?.length || 0})
+                            Respuestas (${cantidadRespuestas})
                         </button>
                         ${esMio ? `
-                            <button type="button" class="btn-delete-post" onclick="borrarPublicacion('${p._id}')">
-                                <i class="bi bi-trash-fill"></i> Eliminar
-                            </button>` : ''}
+                            <div class="post-owner-actions">
+                                <button type="button" class="btn-edit-post" onclick="abrirEditarPublicacion('${p._id}')">
+                                    <i class="bi bi-pencil-fill"></i> Editar
+                                </button>
+                                <button type="button" class="btn-delete-post" onclick="borrarPublicacion('${p._id}')">
+                                    <i class="bi bi-trash-fill"></i> Eliminar
+                                </button>
+                            </div>` : ''}
                     </div>
 
                     <div class="post-comments" id="comments-${p._id}">
@@ -319,6 +339,32 @@
                     </div>
                 </article>`;
             }).join('');
+        }
+
+        function abrirNuevaPublicacion() {
+            editandoId = null;
+            formPub.reset();
+            pubModalTitle.innerHTML = '<i class="bi bi-megaphone-fill"></i> Nueva publicación';
+            btnSubmitPub.textContent = 'Publicar';
+            modalPub.classList.add('open');
+        }
+
+        function abrirEditarPublicacion(id) {
+            const pub = publicaciones.find((p) => p._id === id);
+            if (!pub) return;
+            editandoId = pub._id;
+            document.getElementById('pubCategoria').value = pub.categoria || 'Consejo';
+            document.getElementById('pubTitulo').value = pub.titulo || '';
+            document.getElementById('pubContenido').value = pub.contenido || '';
+            pubModalTitle.innerHTML = '<i class="bi bi-pencil-square"></i> Editar publicación';
+            btnSubmitPub.textContent = 'Guardar cambios';
+            modalPub.classList.add('open');
+        }
+
+        function cerrarModalPublicacion() {
+            editandoId = null;
+            formPub.reset();
+            modalPub.classList.remove('open');
         }
 
         function toggleComentarios(id) {
@@ -379,19 +425,23 @@
             });
         });
 
-        document.getElementById('btnNuevaPublicacion').addEventListener('click', () => modalPub.classList.add('open'));
-        document.getElementById('closePubModal').addEventListener('click', () => modalPub.classList.remove('open'));
-        document.getElementById('cancelPubModal').addEventListener('click', () => modalPub.classList.remove('open'));
+        document.getElementById('btnNuevaPublicacion').addEventListener('click', abrirNuevaPublicacion);
+        document.getElementById('closePubModal').addEventListener('click', cerrarModalPublicacion);
+        document.getElementById('cancelPubModal').addEventListener('click', cerrarModalPublicacion);
         modalPub.addEventListener('click', (e) => {
-            if (e.target === modalPub) modalPub.classList.remove('open');
+            if (e.target === modalPub) cerrarModalPublicacion();
         });
 
         formPub.addEventListener('submit', async (e) => {
             e.preventDefault();
             const token = localStorage.getItem('token');
+            const esEdicion = Boolean(editandoId);
+            const url = esEdicion ? `${API_URL}/comunidad/${editandoId}` : `${API_URL}/comunidad`;
+            const metodo = esEdicion ? 'PUT' : 'POST';
+
             try {
-                const res = await fetch(`${API_URL}/comunidad`, {
-                    method: 'POST',
+                const res = await fetch(url, {
+                    method: metodo,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
@@ -403,10 +453,13 @@
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.mensaje || 'Error al publicar');
-                formPub.reset();
-                modalPub.classList.remove('open');
-                mostrarAvisoComunidad('✅ ¡Publicación compartida con la comunidad!', 'success');
+                if (!res.ok) throw new Error(data.mensaje || 'Error al guardar publicación');
+
+                cerrarModalPublicacion();
+                mostrarAvisoComunidad(
+                    esEdicion ? '✅ ¡Publicación actualizada!' : '✅ ¡Publicación compartida con la comunidad!',
+                    'success'
+                );
                 await cargarPublicaciones();
             } catch (error) {
                 mostrarAvisoComunidad('❌ ' + error.message, 'error');
@@ -418,3 +471,4 @@
 
 </body>
 </html>
+

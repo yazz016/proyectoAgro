@@ -4,6 +4,7 @@ const router = express.Router();
 const {
     obtenerPublicaciones,
     crearPublicacion,
+    editarPublicacion,
     toggleLike,
     agregarComentario,
     eliminarPublicacion
@@ -16,6 +17,9 @@ router.get('/', verificarToken, obtenerPublicaciones);
 
 // Publicar un nuevo consejo, alerta o pregunta
 router.post('/', verificarToken, crearPublicacion);
+
+// Editar publicación propia
+router.put('/:id', verificarToken, editarPublicacion);
 
 // Dar o quitar "Me sirvió"
 router.put('/:id/like', verificarToken, toggleLike);
