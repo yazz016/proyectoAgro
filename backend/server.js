@@ -5,6 +5,8 @@ const conectarDB = require('./src/config/database');
 
 const authRoutes = require('./src/routes/authRoutes');
 const cultivoRoutes = require('./src/routes/cultivoRoutes');
+const ofertaRoutes = require('./src/routes/ofertaRoutes');
+const comunidadRoutes = require('./src/routes/comunidadRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +23,8 @@ conectarDB();
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/cultivos', cultivoRoutes);
+app.use('/api/ofertas', ofertaRoutes);
+app.use('/api/comunidad', comunidadRoutes);
 
 app.get('/', (req, res) => {
     res.json({ mensaje: '🚀 AgroXpress API funcionando' });

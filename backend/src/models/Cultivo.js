@@ -17,7 +17,7 @@ const CultivoSchema = new mongoose.Schema({
     },
     categoria: {
         type: String,
-        enum: ['Cereal', 'Granos', 'Hortaliza', 'Fruta', 'Tubérculo'],
+        enum: ['Cereal', 'Granos', 'Hortaliza', 'Fruta', 'Tubérculo', 'Caficultura'],
         required: true
     },
     descripcion: {
@@ -39,6 +39,36 @@ const CultivoSchema = new mongoose.Schema({
         required: [true, 'El precio es obligatorio'],
         min: 0
     },
+    // Campos para "Sin desperdicio / Ofertas del día"
+    enOferta: {
+        type: Boolean,
+        default: false
+    },
+    precioOferta: {
+        type: Number,
+        min: 0,
+        default: null
+    },
+    motivoOferta: {
+        type: String,
+        trim: true,
+        maxlength: 100,
+        default: ''
+    },
+    ofertaDesde: {
+        type: Date,
+        default: null
+    },
+    // Campos para "Canasta / Combo de varios productos"
+    esCombo: {
+        type: Boolean,
+        default: false
+    },
+    itemsCombo: [{
+        type: String,
+        trim: true,
+        maxlength: 80
+    }],
     ubicacion: {
         departamento: { type: String, required: true },
         municipio: { type: String, required: true },
@@ -53,7 +83,7 @@ const CultivoSchema = new mongoose.Schema({
     fechaProximaCosecha: Date,
     estado: {
         type: String,
-        enum: ['En crecimiento', 'En desarrollo', 'Requiere atención', 'Cosechado'],
+        enum: ['En crecimiento', 'En desarrollo', 'Requiere atención', 'Cosechado', 'Vendido'],
         default: 'En crecimiento'
     },
     disponibleVenta: {

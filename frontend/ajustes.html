@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroXpress | Ajustes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div class="dashboard">
+
+        <!-- ========== SIDEBAR ========== -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="AgroXpress" class="logo-img">
+                <span>
+                    <span class="text-white">Agro</span><span class="text-green">Xpress</span>
+                </span>
+            </div>
+            <ul class="sidebar-menu">
+                <li><i class="bi bi-house-door-fill"></i> Inicio</li>
+                <li><i class="bi bi-tree-fill"></i> Cultivos</li>
+                <li><i class="bi bi-shop"></i> Marketplace</li>
+                <li><i class="bi bi-people-fill"></i> Comunidad</li>
+                <li class="active"><i class="bi bi-gear"></i> Ajustes</li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-info" id="userInfoBtn" role="button" tabindex="0" title="Ver mi perfil">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div>
+                        <div class="user-name" id="userName">Usuario</div>
+                        <div class="user-role" id="userRole">Agricultor</div>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btnLogout">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                </button>
+                <div class="sidebar-version">AgroXpress v2.0</div>
+            </div>
+        </nav>
+
+        <!-- ========== MAIN CONTENT ========== -->
+        <div class="main-content">
+
+            <!-- Topbar -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" id="menuToggle" aria-label="Abrir o cerrar menú">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div>
+                        <h1 class="dashboard-title">Ajustes</h1>
+                        <p class="dashboard-subtitle">Adapta AgroXpress a tu vista y guarda los datos de tu finca</p>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button type="button" class="notif-btn" id="btnNotificaciones" aria-label="Ver notificaciones y ofertas" title="Ofertas y mensajes">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="notif-badge hidden" id="notifBadge">0</span>
+                    </button>
+                    <span class="welcome">Hola, <strong id="welcomeName">Usuario</strong> 👋</span>
+                </div>
+            </div>
+
+            <div id="ajustesMessage" class="form-message"></div>
+
+            <div class="ajustes-grid">
+
+                <!-- Tarjeta 1: Accesibilidad visual -->
+                <div class="ajustes-card">
+                    <h3><i class="bi bi-eye-fill" style="color:var(--secondary-color);"></i> Comodidad visual</h3>
+                    <p class="text-muted" style="font-size:0.9rem; margin-bottom:14px;">
+                        Elige el tamaño de letra que te resulte más fácil de leer en toda la aplicación.
+                    </p>
+
+                    <label style="font-weight:600; font-size:0.9rem;">Tamaño de letra</label>
+                    <div class="font-size-options">
+                        <button type="button" class="btn-cancel font-opt" data-size="16px">Normal</button>
+                        <button type="button" class="btn-save font-opt" data-size="18px">Grande</button>
+                        <button type="button" class="btn-cancel font-opt" data-size="21px">Muy grande</button>
+                    </div>
+
+                    <label style="font-weight:600; font-size:0.9rem; display:block; margin-bottom:8px;">Modo alto contraste</label>
+                    <p class="text-muted" style="font-size:0.86rem; margin-bottom:12px;">
+                        Oscurece los bordes y textos para personas con baja visión o bajo el sol del campo.
+                    </p>
+                    <button type="button" class="btn-cancel" id="btnAltoContraste" style="width:100%; min-height:48px;">
+                        <i class="bi bi-circle-half"></i> Activar alto contraste
+                    </button>
+                </div>
+
+                <!-- Tarjeta 2: Datos de la finca -->
+                <div class="ajustes-card">
+                    <div class="finca-card-header">
+                        <h3><i class="bi bi-geo-alt-fill" style="color:var(--secondary-color);"></i> Datos de mi finca</h3>
+                        <button type="button" class="btn-edit-finca hidden" id="btnEditarFinca">
+                            <i class="bi bi-pencil-fill"></i> Editar
+                        </button>
+                    </div>
+                    <p class="text-muted" style="font-size:0.9rem; margin-bottom:16px;">
+                        Guarda tu ubicación para tenerla siempre a la mano.
+                    </p>
+                    <form id="formFinca">
+                        <div class="ajustes-field">
+                            <label>Nombre de la finca o negocio</label>
+                            <input type="text" id="fincaNombre" placeholder="Ej: Finca La Esperanza">
+                        </div>
+                        <div class="ajustes-field">
+                            <label>Departamento</label>
+                            <input type="text" id="fincaDepto" placeholder="Ej: Cundinamarca">
+                        </div>
+                        <div class="ajustes-field">
+                            <label>Municipio</label>
+                            <input type="text" id="fincaMuni" placeholder="Ej: Silvania">
+                        </div>
+                        <div class="ajustes-field">
+                            <label>Vereda o barrio</label>
+                            <input type="text" id="fincaVereda" placeholder="Ej: Vereda El Roble">
+                        </div>
+                        <button type="submit" class="btn-save" id="btnGuardarFinca" style="width:100%; min-height:48px;">
+                            <i class="bi bi-check-circle-fill"></i> Guardar datos de finca
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========== MODAL NOTIFICACIONES / OFERTAS Y CHAT ========== -->
+    <div class="modal-overlay" id="modalNotificaciones">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-header">
+                <h2><i class="bi bi-bell-fill"></i> Ofertas y acuerdos</h2>
+                <button class="close-modal" id="closeNotifModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <button type="button" class="btn-save" id="tabRecibidas" style="flex:1;">Ofertas recibidas</button>
+                    <button type="button" class="btn-cancel" id="tabEnviadas" style="flex:1;">Mis ofertas enviadas</button>
+                </div>
+                <div id="notifLista" class="notif-list">
+                    <p class="text-muted text-center">Cargando ofertas...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" id="btnCerrarNotif">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL PERFIL DEL USUARIO ========== -->
+    <div class="modal-overlay" id="modalPerfil">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="bi bi-person-circle"></i> Mi Perfil</h2>
+                <button class="close-modal" id="closePerfilModal" aria-label="Cerrar perfil"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-header-box">
+                    <div class="profile-avatar-lg" id="perfilAvatarLg">U</div>
+                    <div>
+                        <h3 id="perfilNombre">Usuario</h3>
+                        <span class="badge badge-success" id="perfilRolBadge">Agricultor</span>
+                        <div>
+                            <label for="inputFotoPerfil" class="btn-change-photo">
+                                <i class="bi bi-camera-fill"></i> Cambiar foto
+                            </label>
+                            <input type="file" id="inputFotoPerfil" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-details-list">
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-envelope-fill"></i> Correo electrónico</span>
+                        <span class="detail-value" id="perfilEmail">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-person-badge-fill"></i> Tipo de cuenta</span>
+                        <span class="detail-value" id="perfilTipo">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-whatsapp" style="color:#16A34A;"></i> WhatsApp de ventas / Business (opcional)</span>
+                        <div class="whatsapp-input-row">
+                            <input type="tel" id="inputWhatsapp" placeholder="Ej: 573001234567">
+                            <button type="button" id="btnGuardarWhatsapp">Guardar</button>
+                        </div>
+                        <small style="color:var(--text-muted); font-size:0.78rem;">🔒 Solo úsalo si tienes línea de ventas. Nunca se muestra al público.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-save" id="btnCerrarPerfil">Listo</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        if (!verificarSesion()) {}
+
+        const usuario = obtenerUsuario();
+        if (usuario) {
+            const nombre = usuario.nombre || 'Usuario';
+            document.getElementById('userName').textContent = nombre;
+            document.getElementById('userAvatar').textContent = nombre.charAt(0).toUpperCase();
+            document.getElementById('welcomeName').textContent = nombre;
+            const roles = { agricultor: '👨‍🌾 Agricultor', comprador: '🛒 Comprador', estudiante: '📚 Estudiante' };
+            document.getElementById('userRole').textContent = roles[usuario.tipo] || 'Agricultor';
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', cerrarSesion);
+        inicializarSidebarYPerfil();
+        inicializarNotificaciones();
+
+        const msgBox = document.getElementById('ajustesMessage');
+        function avisar(texto) {
+            mostrarMensaje(msgBox, texto, 'success');
+            setTimeout(() => { msgBox.style.display = 'none'; }, 3000);
+        }
+
+        // 1. Tamaño de letra
+        const botonesLetra = document.querySelectorAll('.font-opt');
+        function pintarBotonesLetra(actual) {
+            botonesLetra.forEach((b) => {
+                b.className = b.dataset.size === actual ? 'btn-save font-opt' : 'btn-cancel font-opt';
+            });
+        }
+        pintarBotonesLetra(localStorage.getItem('agro_font_scale') || '18px');
+
+        botonesLetra.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const tam = btn.dataset.size;
+                localStorage.setItem('agro_font_scale', tam);
+                aplicarPreferenciasAccesibilidad();
+                pintarBotonesLetra(tam);
+                avisar('✅ Tamaño de letra actualizado en todo AgroXpress');
+            });
+        });
+
+        // 2. Alto contraste
+        const btnContraste = document.getElementById('btnAltoContraste');
+        function pintarBotonContraste() {
+            const activo = localStorage.getItem('agro_high_contrast') === 'true';
+            if (activo) {
+                btnContraste.className = 'btn-save';
+                btnContraste.innerHTML = '<i class="bi bi-check-circle-fill"></i> Alto contraste activado';
+            } else {
+                btnContraste.className = 'btn-cancel';
+                btnContraste.innerHTML = '<i class="bi bi-circle-half"></i> Activar alto contraste';
+            }
+        }
+        pintarBotonContraste();
+
+        btnContraste.addEventListener('click', () => {
+            const nuevo = !(localStorage.getItem('agro_high_contrast') === 'true');
+            localStorage.setItem('agro_high_contrast', String(nuevo));
+            aplicarPreferenciasAccesibilidad();
+            pintarBotonContraste();
+            avisar(nuevo ? '✅ Modo alto contraste activado' : '✅ Modo visual normal restaurado');
+        });
+
+        // 3. Datos de finca (con lápiz Editar al lado derecho cuando ya está guardado)
+        const claveFinca = 'agro_finca_' + (usuario?.email || 'usuario');
+        const formFinca = document.getElementById('formFinca');
+        const btnEditarFinca = document.getElementById('btnEditarFinca');
+        const btnGuardarFinca = document.getElementById('btnGuardarFinca');
+        const camposFinca = [
+            document.getElementById('fincaNombre'),
+            document.getElementById('fincaDepto'),
+            document.getElementById('fincaMuni'),
+            document.getElementById('fincaVereda')
+        ];
+
+        function aplicarModoFinca(guardado) {
+            camposFinca.forEach((campo) => { campo.disabled = guardado; });
+            if (guardado) {
+                btnEditarFinca.classList.remove('hidden');
+                btnGuardarFinca.classList.add('hidden');
+            } else {
+                btnEditarFinca.classList.add('hidden');
+                btnGuardarFinca.classList.remove('hidden');
+            }
+        }
+
+        try {
+            const guardada = JSON.parse(localStorage.getItem(claveFinca));
+            if (guardada && (guardada.nombre || guardada.depto || guardada.muni || guardada.vereda)) {
+                camposFinca[0].value = guardada.nombre || '';
+                camposFinca[1].value = guardada.depto || '';
+                camposFinca[2].value = guardada.muni || '';
+                camposFinca[3].value = guardada.vereda || '';
+                aplicarModoFinca(true);
+            }
+        } catch {}
+
+        btnEditarFinca.addEventListener('click', () => {
+            aplicarModoFinca(false);
+            camposFinca[0].focus();
+        });
+
+        formFinca.addEventListener('submit', (e) => {
+            e.preventDefault();
+            localStorage.setItem(claveFinca, JSON.stringify({
+                nombre: camposFinca[0].value.trim(),
+                depto: camposFinca[1].value.trim(),
+                muni: camposFinca[2].value.trim(),
+                vereda: camposFinca[3].value.trim()
+            }));
+            aplicarModoFinca(true);
+            avisar('✅ Datos de tu finca guardados correctamente');
+        });
+    </script>
+
+</body>
+</html>

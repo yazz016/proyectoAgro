@@ -1,5 +1,6 @@
 const Usuario = require('../models/Usuario');
 const jwt = require('jsonwebtoken');
+const Cultivo = require('../models/Cultivo');
 
 const generarToken = (usuario) => {
     return jwt.sign(
@@ -70,4 +71,56 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { registrar, login };
+const actualizarPerfil = async (req, res) => {
+    try {
+        const { telefono } = req.body;
+        const usuario = await Usuario.findByIdAndUpdate(
+            req.usuario.id,
+            { 'finca.telefono': telefono },
+            { new: true }
+        );
+
+        if (!usuario) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+        }
+
+        res.json({
+            mensaje: 'Teléfono actualizado',
+            telefono: usuario.finca?.telefono || ''
+        });
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
+// Guarda el número de WhatsApp del usuario de forma privada
+const actualizarTelefono = async (req, res) => {
+    try {
+        const { telefono } = req.body;
+        const limpio = (telefono || '').replace(/\D/g, '');
+        if (limpio.length < 7) {
+            return res.status(400).json({ mensaje: 'Número de WhatsApp no válido' });
+        }
+
+        await Usuario.findByIdAndUpdate(req.usuario.id, {
+            'finca.telefono': limpio
+        });
+
+        res.json({ mensaje: 'WhatsApp guardado de forma privada', telefono: limpio });
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
+// Elimina la cuenta del usuario y sus cultivos publicados
+const eliminarCuenta = async (req, res) => {
+    try {
+        await Cultivo.deleteMany({ agricultorId: req.usuario.id });
+        await Usuario.findByIdAndDelete(req.usuario.id);
+        res.json({ mensaje: 'Cuenta eliminada correctamente' });
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
+module.exports = { registrar, login, actualizarTelefono, eliminarCuenta };

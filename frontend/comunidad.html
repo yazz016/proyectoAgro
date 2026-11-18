@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroXpress | Comunidad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div class="dashboard">
+
+        <!-- ========== SIDEBAR ========== -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="AgroXpress" class="logo-img">
+                <span>
+                    <span class="text-white">Agro</span><span class="text-green">Xpress</span>
+                </span>
+            </div>
+            <ul class="sidebar-menu">
+                <li><i class="bi bi-house-door-fill"></i> Inicio</li>
+                <li><i class="bi bi-tree-fill"></i> Cultivos</li>
+                <li><i class="bi bi-shop"></i> Marketplace</li>
+                <li class="active"><i class="bi bi-people-fill"></i> Comunidad</li>
+                <li><i class="bi bi-gear"></i> Ajustes</li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-info" id="userInfoBtn" role="button" tabindex="0" title="Ver mi perfil">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div>
+                        <div class="user-name" id="userName">Usuario</div>
+                        <div class="user-role" id="userRole">Agricultor</div>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btnLogout">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                </button>
+                <div class="sidebar-version">AgroXpress v2.0</div>
+            </div>
+        </nav>
+
+        <!-- ========== MAIN CONTENT ========== -->
+        <div class="main-content">
+
+            <!-- Topbar -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" id="menuToggle" aria-label="Abrir o cerrar menú">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div>
+                        <h1 class="dashboard-title">Comunidad</h1>
+                        <p class="dashboard-subtitle">Consejos del campo, alertas de clima y apoyo entre productores</p>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <button type="button" class="notif-btn" id="btnNotificaciones" aria-label="Ver notificaciones y ofertas" title="Ofertas y mensajes">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="notif-badge hidden" id="notifBadge">0</span>
+                    </button>
+                    <span class="welcome">Hola, <strong id="welcomeName">Usuario</strong> 👋</span>
+                </div>
+            </div>
+
+            <!-- Cabecera y botón principal -->
+            <div class="page-header-custom">
+                <div class="header-title">
+                    <h1><i class="bi bi-people-fill"></i> Plaza del Campo</h1>
+                    <p>Comparte tu experiencia o haz una pregunta a otros agricultores y estudiantes</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn-new-custom" id="btnNuevaPublicacion">
+                        <i class="bi bi-plus-circle-fill"></i> Publicar consejo o pregunta
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros fáciles -->
+            <div class="comunidad-filtros">
+                <button type="button" class="chip-filtro active" data-cat="">Todas</button>
+                <button type="button" class="chip-filtro" data-cat="Consejo">🌱 Consejos</button>
+                <button type="button" class="chip-filtro" data-cat="Clima y Plagas">🌦️ Clima y Plagas</button>
+                <button type="button" class="chip-filtro" data-cat="Pregunta">❓ Preguntas</button>
+            </div>
+
+            <div id="comunidadMessage" class="form-message"></div>
+
+            <!-- Lista de publicaciones -->
+            <div class="comunidad-feed" id="comunidadFeed">
+                <div class="marketplace-empty">Cargando publicaciones...</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========== MODAL NUEVA PUBLICACIÓN ========== -->
+    <div class="modal-overlay" id="modalPublicacion">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="bi bi-megaphone-fill"></i> Nueva publicación</h2>
+                <button class="close-modal" id="closePubModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <form id="formPublicacion">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>¿De qué trata? <span class="required">*</span></label>
+                        <select id="pubCategoria" required>
+                            <option value="Consejo">🌱 Consejo de cultivo</option>
+                            <option value="Clima y Plagas">🌦️ Alerta de clima o plagas</option>
+                            <option value="Pregunta">❓ Pregunta a la comunidad</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Título corto <span class="required">*</span></label>
+                        <input type="text" id="pubTitulo" placeholder="Ej: ¿Cómo proteger el tomate de la lluvia?" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tu mensaje <span class="required">*</span></label>
+                        <textarea id="pubContenido" rows="4" placeholder="Escribe aquí tu consejo, aviso o duda con palabras sencillas..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="cancelPubModal">Cancelar</button>
+                    <button type="submit" class="btn-save">Publicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== MODAL NOTIFICACIONES / OFERTAS Y CHAT ========== -->
+    <div class="modal-overlay" id="modalNotificaciones">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-header">
+                <h2><i class="bi bi-bell-fill"></i> Ofertas y acuerdos</h2>
+                <button class="close-modal" id="closeNotifModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <button type="button" class="btn-save" id="tabRecibidas" style="flex:1;">Ofertas recibidas</button>
+                    <button type="button" class="btn-cancel" id="tabEnviadas" style="flex:1;">Mis ofertas enviadas</button>
+                </div>
+                <div id="notifLista" class="notif-list">
+                    <p class="text-muted text-center">Cargando ofertas...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" id="btnCerrarNotif">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL PERFIL DEL USUARIO ========== -->
+    <div class="modal-overlay" id="modalPerfil">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="bi bi-person-circle"></i> Mi Perfil</h2>
+                <button class="close-modal" id="closePerfilModal" aria-label="Cerrar perfil"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-header-box">
+                    <div class="profile-avatar-lg" id="perfilAvatarLg">U</div>
+                    <div>
+                        <h3 id="perfilNombre">Usuario</h3>
+                        <span class="badge badge-success" id="perfilRolBadge">Agricultor</span>
+                        <div>
+                            <label for="inputFotoPerfil" class="btn-change-photo">
+                                <i class="bi bi-camera-fill"></i> Cambiar foto
+                            </label>
+                            <input type="file" id="inputFotoPerfil" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-details-list">
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-envelope-fill"></i> Correo electrónico</span>
+                        <span class="detail-value" id="perfilEmail">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-person-badge-fill"></i> Tipo de cuenta</span>
+                        <span class="detail-value" id="perfilTipo">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-whatsapp" style="color:#16A34A;"></i> WhatsApp de ventas / Business (opcional)</span>
+                        <div class="whatsapp-input-row">
+                            <input type="tel" id="inputWhatsapp" placeholder="Ej: 573001234567">
+                            <button type="button" id="btnGuardarWhatsapp">Guardar</button>
+                        </div>
+                        <small style="color:var(--text-muted); font-size:0.78rem;">🔒 Solo úsalo si tienes línea de ventas. Nunca se muestra al público.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-save" id="btnCerrarPerfil">Listo</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        if (!verificarSesion()) {}
+
+        const usuario = obtenerUsuario();
+        if (usuario) {
+            const nombre = usuario.nombre || 'Usuario';
+            document.getElementById('userName').textContent = nombre;
+            document.getElementById('userAvatar').textContent = nombre.charAt(0).toUpperCase();
+            document.getElementById('welcomeName').textContent = nombre;
+            const roles = { agricultor: '👨‍🌾 Agricultor', comprador: '🛒 Comprador', estudiante: '📚 Estudiante' };
+            document.getElementById('userRole').textContent = roles[usuario.tipo] || 'Agricultor';
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', cerrarSesion);
+        inicializarSidebarYPerfil();
+        inicializarNotificaciones();
+
+        let publicaciones = [];
+        let categoriaFiltro = '';
+        const feed = document.getElementById('comunidadFeed');
+        const msgBox = document.getElementById('comunidadMessage');
+        const modalPub = document.getElementById('modalPublicacion');
+        const formPub = document.getElementById('formPublicacion');
+
+        function mostrarAvisoComunidad(texto, tipo) {
+            mostrarMensaje(msgBox, texto, tipo);
+            setTimeout(() => {
+                msgBox.style.display = 'none';
+            }, 3500);
+        }
+
+        async function cargarPublicaciones() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/comunidad`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.status === 401) {
+                    cerrarSesion();
+                    return;
+                }
+                if (!res.ok) throw new Error('Error cargando comunidad');
+                publicaciones = await res.json();
+                renderizarPublicaciones();
+            } catch (error) {
+                feed.innerHTML = `<div class="marketplace-empty">No pudimos cargar la comunidad. Verifica que el servidor esté encendido.</div>`;
+            }
+        }
+
+        function renderizarPublicaciones() {
+            const filtradas = categoriaFiltro
+                ? publicaciones.filter((p) => p.categoria === categoriaFiltro)
+                : publicaciones;
+
+            if (filtradas.length === 0) {
+                feed.innerHTML = `
+                    <div class="marketplace-empty">
+                        <i class="bi bi-chat-heart" style="font-size:2.4rem; display:block; margin-bottom:10px;"></i>
+                        Aún no hay publicaciones aquí. ¡Sé el primero en compartir un consejo!
+                    </div>`;
+                return;
+            }
+
+            const roles = { agricultor: '👨‍🌾 Agricultor', comprador: '🛒 Comprador', estudiante: '📚 Estudiante' };
+
+            feed.innerHTML = filtradas.map((p) => {
+                const yaDioLike = p.likes?.some((id) => id === usuario?.id);
+                const cantidadLikes = p.likes?.length || 0;
+                const fecha = new Date(p.createdAt).toLocaleDateString('es-CO', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                });
+                const esMio = p.autorId === usuario?.id;
+                const badgeCat = p.categoria === 'Clima y Plagas' ? 'badge-warning' :
+                                 p.categoria === 'Pregunta' ? 'badge-info' : 'badge-success';
+
+                return `
+                <article class="post-card">
+                    <div class="post-header">
+                        <div class="post-author-box">
+                            <div class="post-avatar">${escaparTexto((p.autorNombre || 'U')[0].toUpperCase())}</div>
+                            <div>
+                                <div style="font-weight:700; color:var(--text-color);">${escaparTexto(p.autorNombre)}</div>
+                                <div style="font-size:0.82rem; color:var(--text-muted);">${roles[p.autorTipo] || 'Usuario'} • ${fecha}</div>
+                            </div>
+                        </div>
+                        <span class="badge ${badgeCat}">${escaparTexto(p.categoria)}</span>
+                    </div>
+
+                    <h3 class="post-title">${escaparTexto(p.titulo)}</h3>
+                    <p class="post-body">${escaparTexto(p.contenido)}</p>
+
+                    <div class="post-actions-row">
+                        <button type="button" class="btn-like-post ${yaDioLike ? 'liked' : ''}" onclick="darLike('${p._id}')">
+                            <i class="bi ${yaDioLike ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}"></i>
+                            Me sirvió (${cantidadLikes})
+                        </button>
+                        <button type="button" class="btn-reply-post" onclick="toggleComentarios('${p._id}')">
+                            <i class="bi bi-chat-left-text"></i>
+                            Respuestas (${p.comentarios?.length || 0})
+                        </button>
+                        ${esMio ? `
+                            <button type="button" class="btn-delete-post" onclick="borrarPublicacion('${p._id}')">
+                                <i class="bi bi-trash-fill"></i> Eliminar
+                            </button>` : ''}
+                    </div>
+
+                    <div class="post-comments" id="comments-${p._id}">
+                        ${(p.comentarios || []).map((c) => `
+                            <div class="post-comment-item">
+                                <strong>${escaparTexto(c.autorNombre)}:</strong> ${escaparTexto(c.texto)}
+                            </div>`).join('')}
+                        <form class="oferta-chat-form" onsubmit="enviarComentario(event, '${p._id}')">
+                            <input type="text" placeholder="Escribe una respuesta amable..." required>
+                            <button type="submit">Responder</button>
+                        </form>
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        function toggleComentarios(id) {
+            const box = document.getElementById('comments-' + id);
+            if (!box) return;
+            const input = box.querySelector('input');
+            if (input) input.focus();
+        }
+
+        async function darLike(id) {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/comunidad/${id}/like`, {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) await cargarPublicaciones();
+        }
+
+        async function enviarComentario(e, id) {
+            e.preventDefault();
+            const input = e.target.querySelector('input');
+            const texto = input.value.trim();
+            if (!texto) return;
+
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/comunidad/${id}/comentarios`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ texto })
+            });
+            if (res.ok) {
+                input.value = '';
+                await cargarPublicaciones();
+            }
+        }
+
+        async function borrarPublicacion(id) {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/comunidad/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                mostrarAvisoComunidad('Publicación eliminada', 'success');
+                await cargarPublicaciones();
+            }
+        }
+
+        document.querySelectorAll('.chip-filtro').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.chip-filtro').forEach((b) => b.classList.remove('active'));
+                btn.classList.add('active');
+                categoriaFiltro = btn.dataset.cat;
+                renderizarPublicaciones();
+            });
+        });
+
+        document.getElementById('btnNuevaPublicacion').addEventListener('click', () => modalPub.classList.add('open'));
+        document.getElementById('closePubModal').addEventListener('click', () => modalPub.classList.remove('open'));
+        document.getElementById('cancelPubModal').addEventListener('click', () => modalPub.classList.remove('open'));
+        modalPub.addEventListener('click', (e) => {
+            if (e.target === modalPub) modalPub.classList.remove('open');
+        });
+
+        formPub.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${API_URL}/comunidad`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        categoria: document.getElementById('pubCategoria').value,
+                        titulo: document.getElementById('pubTitulo').value.trim(),
+                        contenido: document.getElementById('pubContenido').value.trim()
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'Error al publicar');
+                formPub.reset();
+                modalPub.classList.remove('open');
+                mostrarAvisoComunidad('✅ ¡Publicación compartida con la comunidad!', 'success');
+                await cargarPublicaciones();
+            } catch (error) {
+                mostrarAvisoComunidad('❌ ' + error.message, 'error');
+            }
+        });
+
+        cargarPublicaciones();
+    </script>
+
+</body>
+</html>

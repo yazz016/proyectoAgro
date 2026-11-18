@@ -21,14 +21,14 @@
                 <span><span class="text-white">Agro</span><span class="text-green">Xpress</span></span>
             </div>
             <ul class="sidebar-menu">
-                <li id="menuDashboard"><i class="bi bi-grid-1x2-fill"></i> Dashboard</li>
+                <li id="menuDashboard"><i class="bi bi-house-door-fill"></i> Inicio</li>
                 <li class="active"><i class="bi bi-tree-fill"></i> Cultivos</li>
                 <li><i class="bi bi-shop"></i> Marketplace</li>
                 <li><i class="bi bi-people-fill"></i> Comunidad</li>
                 <li><i class="bi bi-gear"></i> Ajustes</li>
             </ul>
             <div class="sidebar-footer">
-                <div class="user-info">
+                <div class="user-info" id="userInfoBtn" role="button" tabindex="0" title="Ver mi perfil">
                     <div class="avatar" id="userAvatar">U</div>
                     <div>
                         <div class="user-name" id="userName">Usuario</div>
@@ -57,6 +57,10 @@
                     </div>
                 </div>
                 <div class="topbar-right">
+                    <button type="button" class="notif-btn" id="btnNotificaciones" aria-label="Ver notificaciones y ofertas" title="Ofertas y mensajes">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="notif-badge hidden" id="notifBadge">0</span>
+                    </button>
                     <span class="welcome">Bienvenido, <strong id="welcomeName">Usuario</strong> 👋</span>
                 </div>
             </div>
@@ -65,7 +69,7 @@
             <div class="page-header-custom">
                 <div class="header-title">
                     <h1><i class="bi bi-tree-fill"></i> Mis Cultivos</h1>
-                    <p>Administra todos tus cultivos registrados en AgroXpress</p>
+                    <p>Administra tus cultivos, arma Canastas / Combos y toca el ⚡ debajo de cada nombre para destacarlo en Zona Xpress</p>
                 </div>
                 <div class="page-actions">
                     <button class="btn-new-custom" id="btnNuevoCultivo">
@@ -88,14 +92,17 @@
                 <div class="filters-bar-custom">
                     <div class="search-box">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="searchCultivo" placeholder="Buscar cultivo...">
+                        <input type="text" id="searchCultivo" placeholder="Buscar cultivo o producto de canasta...">
                     </div>
                     <select id="filterEstado">
                         <option value="">Todos los estados</option>
+                        <option value="EN_OFERTA">⚡ AgroFlash (Zona Xpress)</option>
+                        <option value="ES_COMBO">🧺 Solo Canastas / Combos</option>
                         <option value="En crecimiento">En crecimiento</option>
                         <option value="En desarrollo">En desarrollo</option>
                         <option value="Requiere atención">Requiere atención</option>
                         <option value="Cosechado">Cosechado</option>
+                        <option value="Vendido">Vendido</option>
                     </select>
                     <select id="filterCategoria">
                         <option value="">Todos los tipos</option>
@@ -104,6 +111,7 @@
                         <option value="Hortaliza">Hortaliza</option>
                         <option value="Fruta">Fruta</option>
                         <option value="Tubérculo">Tubérculo</option>
+                        <option value="Caficultura">Caficultura</option>
                     </select>
                 </div>
 
@@ -139,98 +147,278 @@
 
     <!-- ========== MODAL NUEVO/EDITAR CULTIVO ========== -->
     <div class="modal-overlay" id="modalCultivo">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitulo">Nuevo cultivo</h2>
-                <button class="close-modal" id="closeModal"><i class="bi bi-x-lg"></i></button>
-            </div>
+        <div class="modal-content modal-crop-wide">
             <form id="formCultivo">
-                <div class="modal-body">
-                    <input type="hidden" id="editId">
+                <div class="crop-modal-split">
 
-                    <div class="form-group">
-                        <label>Nombre del cultivo <span class="required">*</span></label>
-                        <input type="text" id="cropNombre" placeholder="Ej: Tomate, Maíz, Café" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Tipo <span class="required">*</span></label>
-                        <select id="cropCategoria" required>
-                            <option value="">Selecciona...</option>
-                            <option value="Cereal">Cereal</option>
-                            <option value="Granos">Granos</option>
-                            <option value="Hortaliza">Hortaliza</option>
-                            <option value="Fruta">Fruta</option>
-                            <option value="Tubérculo">Tubérculo</option>
-                        </select>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                        <div class="form-group">
-                            <label>Cantidad <span class="required">*</span></label>
-                            <input type="number" id="cropCantidad" placeholder="0" min="0" required>
+                    <!-- LADO IZQUIERDO VERDE: CARGAR FOTO -->
+                    <div class="crop-modal-left">
+                        <h3 style="font-size:1.15rem; font-weight:700;">📸 Foto de tu cosecha</h3>
+                        <div class="crop-photo-box">
+                            <div class="crop-upload-placeholder" id="cropUploadPlaceholder">
+                                <i class="bi bi-image"></i>
+                                <span>Aquí se verá la foto de tu cultivo</span>
+                            </div>
+                            <img id="cropPreview" alt="Vista previa" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:12px;">
                         </div>
-                        <div class="form-group">
-                            <label>Precio (COP) <span class="required">*</span></label>
-                            <input type="number" id="cropPrecio" placeholder="0" min="0" required>
+                        <label for="cropImagen" class="btn-crop-upload">
+                            <i class="bi bi-upload"></i> Seleccionar imagen
+                        </label>
+                        <input type="file" id="cropImagen" accept="image/*" class="hidden">
+                        <p style="font-size:0.82rem; opacity:0.8; line-height:1.4;">
+                            Una foto clara y natural ayuda a que los compradores confíen y compren más rápido en el Marketplace.
+                        </p>
+                    </div>
+
+                    <!-- LADO DERECHO BLANCO: DATOS -->
+                    <div class="crop-modal-right">
+                        <div class="modal-header">
+                            <h2 id="modalTitulo">Nuevo cultivo</h2>
+                            <button type="button" class="close-modal" id="closeModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="editId">
+
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                                <div class="form-group">
+                                    <label>Nombre del cultivo o canasta <span class="required">*</span></label>
+                                    <input type="text" id="cropNombre" placeholder="Ej: Tomate, Canasta Familiar..." required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tipo <span class="required">*</span></label>
+                                    <select id="cropCategoria" required>
+                                        <option value="">Selecciona...</option>
+                                        <option value="Cereal">Cereal</option>
+                                        <option value="Granos">Granos</option>
+                                        <option value="Hortaliza">Hortaliza</option>
+                                        <option value="Fruta">Fruta</option>
+                                        <option value="Tubérculo">Tubérculo</option>
+                                        <option value="Caficultura">Caficultura</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Opción Canasta / Combo multiproducto -->
+                            <div class="combo-toggle-box">
+                                <label class="combo-check-label" for="cropEsCombo">
+                                    <input type="checkbox" id="cropEsCombo">
+                                    <span>🧺 Es una Canasta / Combo de varios productos</span>
+                                </label>
+                                <small class="combo-help-text">
+                                    Actívalo si vendes varios productos juntos en un solo paquete (ej: Papa + Tomate + Cilantro).
+                                </small>
+
+                                <div class="combo-items-box hidden" id="comboItemsBox">
+                                    <label for="comboItemInput" class="combo-items-label">
+                                        ¿Qué productos incluye esta canasta? (mínimo 2)
+                                    </label>
+                                    <div class="combo-input-row">
+                                        <input type="text" id="comboItemInput" maxlength="80" placeholder="Ej: 2 kg de Papa Criolla">
+                                        <button type="button" class="btn-add-combo-item" id="btnAddComboItem">
+                                            <i class="bi bi-plus-lg"></i> Agregar
+                                        </button>
+                                    </div>
+                                    <div class="combo-items-list" id="comboItemsList"></div>
+                                </div>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                                <div class="form-group">
+                                    <label>Cantidad disponible <span class="required">*</span></label>
+                                    <input type="number" id="cropCantidad" placeholder="0" min="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Precio (COP) <span class="required">*</span></label>
+                                    <input type="number" id="cropPrecio" placeholder="0" min="0" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Estado</label>
+                                <select id="cropEstado">
+                                    <option value="En crecimiento">En crecimiento</option>
+                                    <option value="En desarrollo">En desarrollo</option>
+                                    <option value="Requiere atención">Requiere atención</option>
+                                    <option value="Cosechado">Cosechado</option>
+                                    <option value="Vendido">Vendido</option>
+                                </select>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                                <div class="form-group">
+                                    <label>Fecha de siembra</label>
+                                    <input type="date" id="cropSiembra">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha de cosecha</label>
+                                    <input type="date" id="cropCosecha">
+                                </div>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                                <div class="form-group">
+                                    <label>Departamento</label>
+                                    <input type="text" id="cropDepartamento" placeholder="Ej: Cundinamarca">
+                                </div>
+                                <div class="form-group">
+                                    <label>Municipio</label>
+                                    <input type="text" id="cropMunicipio" placeholder="Ej: Silvania">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Observaciones / Descripción para el comprador</label>
+                                <textarea id="cropObservaciones" rows="2" placeholder="Ej: Abono orgánico, sin químicos, recién cosechado..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-cancel" id="cancelModal">Cancelar</button>
+                            <button type="submit" class="btn-save" id="saveCropBtn">Guardar cultivo</button>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Estado</label>
-                        <select id="cropEstado">
-                            <option value="En crecimiento">En crecimiento</option>
-                            <option value="En desarrollo">En desarrollo</option>
-                            <option value="Requiere atención">Requiere atención</option>
-                            <option value="Cosechado">Cosechado</option>
-                        </select>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                        <div class="form-group">
-                            <label>Fecha de siembra</label>
-                            <input type="date" id="cropSiembra">
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha de cosecha</label>
-                            <input type="date" id="cropCosecha">
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-                        <div class="form-group">
-                            <label>Departamento</label>
-                            <input type="text" id="cropDepartamento" placeholder="Ej: Cundinamarca">
-                        </div>
-                        <div class="form-group">
-                            <label>Municipio</label>
-                            <input type="text" id="cropMunicipio" placeholder="Ej: Silvania">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Imagen del cultivo</label>
-                        <input type="file" id="cropImagen" accept="image/*">
-                        <img id="cropPreview" alt="Vista previa" style="display:none; max-width:100%; max-height:150px; margin-top:8px; border-radius:8px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Observaciones</label>
-                        <textarea id="cropObservaciones" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" id="cancelModal">Cancelar</button>
-                    <button type="submit" class="btn-save" id="saveCropBtn">Guardar cultivo</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ========== MODAL AGROFLASH / ZONA XPRESS ========== -->
+    <div class="modal-overlay" id="modalOfertaCultivo">
+        <div class="modal-content" style="max-width:480px;">
+            <form id="formOfertaCultivo">
+                <div class="modal-header">
+                    <h2>⚡ AgroFlash • Zona Xpress</h2>
+                    <button type="button" class="close-modal" id="closeOfertaModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="ofertaCultivoId">
+
+                    <div class="offer-preview-box">
+                        <strong id="ofertaCultivoNombre">Cultivo</strong>
+                        <span>Precio normal actual: <b id="ofertaPrecioNormal">$0 COP</b></span>
+                    </div>
+
+                    <div class="offer-error-msg" id="ofertaErrorMsg"></div>
+
+                    <div class="form-group">
+                        <label for="ofertaPrecioInput">Precio AgroFlash en COP (opcional)</label>
+                        <input type="number" id="ofertaPrecioInput" min="1" placeholder="Ej: 75000 (déjalo vacío si mantienes el precio)">
+                        <small style="color:var(--text-muted); display:block; margin-top:4px;">
+                            Si pones un valor menor al precio normal, aparecerá resaltado en la Zona Xpress del Marketplace.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ofertaMotivoInput">Mensaje corto para el comprador</label>
+                        <input type="text" id="ofertaMotivoInput" maxlength="90" placeholder="Ej: Cosecha fresca lista • Salida rápida">
+                        <div class="offer-motivo-presets">
+                            <button type="button" class="offer-preset-btn" data-motivo="Cosecha fresca • Salida rápida">🌾 Salida rápida</button>
+                            <button type="button" class="offer-preset-btn" data-motivo="Últimos disponibles de este lote">🧺 Últimos disponibles</button>
+                            <button type="button" class="offer-preset-btn" data-motivo="Precio AgroFlash hoy sin intermediarios">⚡ Precio AgroFlash hoy</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <button type="button" class="btn-offer-off" id="btnQuitarOferta" style="display:none;">
+                        <i class="bi bi-x-circle"></i> Quitar de Zona Xpress
+                    </button>
+                    <div style="display:flex; gap:8px; margin-left:auto;">
+                        <button type="button" class="btn-cancel" id="cancelOfertaModal">Cancelar</button>
+                        <button type="submit" class="btn-save" id="btnGuardarOferta">⚡ Activar AgroFlash</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== MODAL NOTIFICACIONES / OFERTAS Y CHAT ========== -->
+    <div class="modal-overlay" id="modalNotificaciones">
+        <div class="modal-content" style="max-width:620px;">
+            <div class="modal-header">
+                <h2><i class="bi bi-bell-fill"></i> Ofertas y acuerdos</h2>
+                <button class="close-modal" id="closeNotifModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <button type="button" class="btn-save" id="tabRecibidas" style="flex:1;">Ofertas recibidas</button>
+                    <button type="button" class="btn-cancel" id="tabEnviadas" style="flex:1;">Mis ofertas enviadas</button>
+                </div>
+                <div id="notifLista" class="notif-list">
+                    <p class="text-muted text-center">Cargando ofertas...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" id="btnCerrarNotif">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL PERFIL DEL USUARIO ========== -->
+    <div class="modal-overlay" id="modalPerfil">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="bi bi-person-circle"></i> Mi Perfil</h2>
+                <button class="close-modal" id="closePerfilModal" aria-label="Cerrar perfil"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-header-box">
+                    <div class="profile-avatar-lg" id="perfilAvatarLg">U</div>
+                    <div>
+                        <h3 id="perfilNombre">Usuario</h3>
+                        <span class="badge badge-success" id="perfilRolBadge">Agricultor</span>
+                        <div>
+                            <label for="inputFotoPerfil" class="btn-change-photo">
+                                <i class="bi bi-camera-fill"></i> Cambiar foto
+                            </label>
+                            <input type="file" id="inputFotoPerfil" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accesos rápidos con íconos -->
+                <div class="profile-quick-actions">
+                    <button type="button" class="profile-action-btn" id="btnPerfilMensajes">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        <span>Mensajes</span>
+                    </button>
+                    <button type="button" class="profile-action-btn" id="btnPerfilOfertas">
+                        <i class="bi bi-tag-fill"></i>
+                        <span>Mis ofertas</span>
+                    </button>
+                    <a href="#" target="_blank" rel="noopener" class="profile-action-btn whatsapp-btn" id="btnPerfilWhatsapp">
+                        <i class="bi bi-whatsapp"></i>
+                        <span>WhatsApp</span>
+                    </a>
+                </div>
+
+                <div class="profile-details-list">
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-envelope-fill"></i> Correo electrónico</span>
+                        <span class="detail-value" id="perfilEmail">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-person-badge-fill"></i> Tipo de cuenta</span>
+                        <span class="detail-value" id="perfilTipo">-</span>
+                    </div>
+                    <div class="profile-detail-item">
+                        <span class="detail-label"><i class="bi bi-whatsapp" style="color:#16A34A;"></i> Tu número de WhatsApp</span>
+                        <div class="whatsapp-input-row">
+                            <input type="tel" id="inputWhatsapp" placeholder="Ej: 573001234567">
+                            <button type="button" id="btnGuardarWhatsapp">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-save" id="btnCerrarPerfil">Listo</button>
+            </div>
         </div>
     </div>
 
     <script src="js/auth.js"></script>
     <script>
         // ============ VERIFICAR SESIÓN ============
-        if (!verificarSesion()) { }
+        verificarSesion();
 
         const usuario = obtenerUsuario();
         if (usuario) {
@@ -240,32 +428,22 @@
             document.getElementById('welcomeName').textContent = usuario.nombre || 'Usuario';
         }
 
-        // ============ MENÚ TOGGLE ============
-        document.getElementById('menuToggle').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('open');
-        });
-
-        document.addEventListener('click', (e) => {
-            const sidebar = document.getElementById('sidebar');
-            const toggle = document.getElementById('menuToggle');
-            if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-                sidebar.classList.remove('open');
-            }
-        });
+        inicializarSidebarYPerfil();
+        inicializarNotificaciones();
 
         // ============ CERRAR SESIÓN ============
-        document.getElementById('btnLogout').addEventListener('click', cerrarSesion);
+        document.getElementById('btnLogout')?.addEventListener('click', cerrarSesion);
 
         // ============ IR A DASHBOARD ============
-        document.getElementById('menuDashboard').addEventListener('click', () => {
+        document.getElementById('menuDashboard')?.addEventListener('click', () => {
             window.location.href = 'dashboard.html';
         });
 
         // ============ VARIABLES ============
-        
         let cultivos = [];
         let editandoId = null;
         let imagenSeleccionada = null;
+        let comboItems = [];
 
         // ============ DOM ============
         const tabla = document.getElementById('tablaCultivos');
@@ -289,13 +467,66 @@
         const cropMunicipio = document.getElementById('cropMunicipio');
         const cropImagen = document.getElementById('cropImagen');
         const cropPreview = document.getElementById('cropPreview');
+        const cropPlaceholder = document.getElementById('cropUploadPlaceholder');
         const cropObservaciones = document.getElementById('cropObservaciones');
+
+        // DOM Canasta / Combo
+        const cropEsCombo = document.getElementById('cropEsCombo');
+        const comboItemsBox = document.getElementById('comboItemsBox');
+        const comboItemInput = document.getElementById('comboItemInput');
+        const btnAddComboItem = document.getElementById('btnAddComboItem');
+        const comboItemsList = document.getElementById('comboItemsList');
+
+        // DOM Modal AgroFlash / Zona Xpress
+        const modalOferta = document.getElementById('modalOfertaCultivo');
+        const closeOfertaModal = document.getElementById('closeOfertaModal');
+        const cancelOfertaModal = document.getElementById('cancelOfertaModal');
+        const formOferta = document.getElementById('formOfertaCultivo');
+        const ofertaCultivoId = document.getElementById('ofertaCultivoId');
+        const ofertaCultivoNombre = document.getElementById('ofertaCultivoNombre');
+        const ofertaPrecioNormal = document.getElementById('ofertaPrecioNormal');
+        const ofertaPrecioInput = document.getElementById('ofertaPrecioInput');
+        const ofertaMotivoInput = document.getElementById('ofertaMotivoInput');
+        const ofertaErrorMsg = document.getElementById('ofertaErrorMsg');
+        const btnQuitarOferta = document.getElementById('btnQuitarOferta');
+        const btnGuardarOferta = document.getElementById('btnGuardarOferta');
 
         const searchInput = document.getElementById('searchCultivo');
         const filterEstado = document.getElementById('filterEstado');
         const filterCategoria = document.getElementById('filterCategoria');
 
-        // ============ FUNCIONES ============
+        // ============ UTILIDADES ============
+        function escapeHtml(texto) {
+            return String(texto || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatearCOP(valor) {
+            return '$' + Number(valor || 0).toLocaleString('es-CO') + ' COP';
+        }
+
+        const iconoGranoCafe = `
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                <ellipse cx="12" cy="12" rx="7.5" ry="9.5" transform="rotate(-22 12 12)" fill="#6F4E37"/>
+                <path d="M9.5 4.2C12.2 8.2 11.8 15.8 14.5 19.8" stroke="#F5E6D3" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+        `;
+
+        function mostrarVistaPrevia(url) {
+            if (url) {
+                cropPreview.src = url;
+                cropPreview.style.display = 'block';
+                if (cropPlaceholder) cropPlaceholder.style.display = 'none';
+            } else {
+                cropPreview.style.display = 'none';
+                cropPreview.src = '';
+                if (cropPlaceholder) cropPlaceholder.style.display = 'flex';
+            }
+        }
 
         function getToken() {
             return localStorage.getItem('token');
@@ -318,6 +549,60 @@
             });
         }
 
+        // ============ LÓGICA DE CANASTA / COMBO ============
+        function renderizarComboItems() {
+            if (comboItems.length === 0) {
+                comboItemsList.innerHTML = '<span class="combo-empty-hint">Aún no has agregado productos a la canasta.</span>';
+                return;
+            }
+
+            comboItemsList.innerHTML = comboItems.map((item, idx) => `
+                <span class="combo-item-pill">
+                    <span>${escapeHtml(item)}</span>
+                    <button type="button" class="combo-remove-btn" data-index="${idx}" aria-label="Quitar producto">×</button>
+                </span>
+            `).join('');
+
+            comboItemsList.querySelectorAll('.combo-remove-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const idx = Number(btn.dataset.index);
+                    comboItems.splice(idx, 1);
+                    renderizarComboItems();
+                });
+            });
+        }
+
+        function agregarItemCombo() {
+            const texto = comboItemInput.value.trim();
+            if (!texto) return;
+
+            if (comboItems.length >= 8) {
+                alert('Puedes agregar máximo 8 productos por canasta para que se vea clara.');
+                return;
+            }
+
+            comboItems.push(texto.slice(0, 80));
+            comboItemInput.value = '';
+            renderizarComboItems();
+            comboItemInput.focus();
+        }
+
+        cropEsCombo.addEventListener('change', () => {
+            comboItemsBox.classList.toggle('hidden', !cropEsCombo.checked);
+            if (cropEsCombo.checked) {
+                comboItemInput.focus();
+            }
+        });
+
+        btnAddComboItem.addEventListener('click', agregarItemCombo);
+
+        comboItemInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                agregarItemCombo();
+            }
+        });
+
         async function cargarCultivos() {
             try {
                 const response = await fetch(`${API_URL}/cultivos/mis-cultivos`, {
@@ -333,8 +618,7 @@
                 }
 
                 cultivos = await response.json();
-                renderizarTabla();
-                document.getElementById('cantidadRegistros').textContent = cultivos.length;
+                aplicarFiltros();
 
             } catch (error) {
                 console.error('Error:', error);
@@ -347,7 +631,7 @@
                     <tr>
                         <td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">
                             <i class="bi bi-flower1" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
-                            No tienes cultivos registrados.
+                            No hay cultivos que coincidan con el filtro.
                         </td>
                     </tr>
                 `;
@@ -363,9 +647,25 @@
                 const icono = c.categoria === 'Cereal' ? '🌾' :
                               c.categoria === 'Granos' ? '🫘' :
                               c.categoria === 'Hortaliza' ? '🥬' :
-                              c.categoria === 'Fruta' ? '🍎' : '🥔';
+                              c.categoria === 'Fruta' ? '🍎' :
+                              c.categoria === 'Caficultura' ? iconoGranoCafe : '🥔';
 
                 const disponible = c.disponibleVenta !== false;
+                const agotado = c.cantidadDisponible <= 0 || c.estado === 'Vendido';
+
+                const comboChip = c.esCombo
+                    ? `<div class="combo-chip">🧺 Combo (${(c.itemsCombo || []).length} prod.)</div>`
+                    : '';
+
+                const rayoDebajoNombre = !agotado
+                    ? `<button
+                            type="button"
+                            class="crop-flash-btn ${c.enOferta ? 'active' : ''}"
+                            data-id="${c._id}"
+                            title="${c.enOferta ? 'AgroFlash activo en Zona Xpress (clic para editar o quitar)' : 'Activar ⚡ AgroFlash en Zona Xpress'}"
+                            aria-label="${c.enOferta ? 'Gestionar AgroFlash' : 'Activar AgroFlash'}"
+                       >⚡</button>`
+                    : '';
 
                 html += `
                 <tr>
@@ -374,22 +674,24 @@
                             <div class="crop-image">
                                 ${
                                     c.imagenes?.[0]?.url
-                                        ? `<img src="${c.imagenes[0].url}" alt="${c.nombreProducto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`
+                                        ? `<img src="${escapeHtml(c.imagenes[0].url)}" alt="${escapeHtml(c.nombreProducto)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`
                                         : icono
                                 }
                             </div>
                             <div>
-                                <div class="crop-name">${c.nombreProducto}</div>
-                                <div class="crop-variety">${c.variedad || ''}</div>
+                                <div class="crop-name">${escapeHtml(c.nombreProducto)}</div>
+                                <div class="crop-variety">${escapeHtml(c.variedad || '')}</div>
+                                ${comboChip}
+                                ${rayoDebajoNombre}
                             </div>
                         </div>
                     </td>
-                    <td><span style="font-size:0.85rem;">${c.categoria}</span></td>
-                    <td><strong>${c.cantidadDisponible}</strong> ${c.unidadMedida || 'kg'}</td>
-                    <td><span class="badge ${badgeClass}">${c.estado}</span></td>
+                    <td><span style="font-size:0.85rem;">${escapeHtml(c.categoria)}</span></td>
+                    <td><strong>${c.cantidadDisponible}</strong> ${escapeHtml(c.unidadMedida || 'kg')}</td>
+                    <td><span class="badge ${badgeClass}">${escapeHtml(c.estado)}</span></td>
                     <td>
-                        <button 
-                            class="btn-disponible ${disponible ? 'activo' : 'inactivo'}" 
+                        <button
+                            class="btn-disponible ${disponible ? 'activo' : 'inactivo'}"
                             onclick="toggleDisponible('${c._id}', ${disponible})"
                         >
                             <i class="bi ${disponible ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>
@@ -400,10 +702,10 @@
                     <td>${formatDate(c.fechaCosecha)}</td>
                     <td>
                         <div class="table-actions">
-                            <button class="edit" data-id="${c._id}" title="Editar">
+                            <button type="button" class="edit" data-id="${c._id}" title="Editar">
                                 <i class="bi bi-pencil-fill"></i>
                             </button>
-                            <button class="delete" data-id="${c._id}" title="Eliminar">
+                            <button type="button" class="delete" data-id="${c._id}" title="Eliminar">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                         </div>
@@ -413,6 +715,9 @@
 
             tabla.innerHTML = html;
 
+            tabla.querySelectorAll('.crop-flash-btn').forEach(btn => {
+                btn.addEventListener('click', () => abrirModalOferta(btn.dataset.id));
+            });
             tabla.querySelectorAll('.edit').forEach(btn => {
                 btn.addEventListener('click', () => editarCultivo(btn.dataset.id));
             });
@@ -448,8 +753,13 @@
             const categoria = filterCategoria.value;
 
             const filtrados = cultivos.filter(c => {
-                const matchSearch = c.nombreProducto.toLowerCase().includes(search);
-                const matchEstado = !estado || c.estado === estado;
+                const itemsTexto = Array.isArray(c.itemsCombo) ? c.itemsCombo.join(' ').toLowerCase() : '';
+                const matchSearch = (c.nombreProducto || '').toLowerCase().includes(search) || itemsTexto.includes(search);
+                const matchEstado = !estado || (
+                    estado === 'EN_OFERTA' ? Boolean(c.enOferta) :
+                    estado === 'ES_COMBO' ? Boolean(c.esCombo) :
+                    c.estado === estado
+                );
                 const matchCategoria = !categoria || c.categoria === categoria;
                 return matchSearch && matchEstado && matchCategoria;
             });
@@ -458,7 +768,128 @@
             document.getElementById('cantidadRegistros').textContent = filtrados.length;
         }
 
-        // ============ MODAL ============
+        // ============ MODAL AGROFLASH / ZONA XPRESS ============
+        function mostrarErrorOferta(msg) {
+            if (msg) {
+                ofertaErrorMsg.textContent = msg;
+                ofertaErrorMsg.style.display = 'block';
+            } else {
+                ofertaErrorMsg.textContent = '';
+                ofertaErrorMsg.style.display = 'none';
+            }
+        }
+
+        function abrirModalOferta(id) {
+            const cultivo = cultivos.find(c => c._id === id);
+            if (!cultivo) return;
+
+            mostrarErrorOferta('');
+            ofertaCultivoId.value = cultivo._id;
+            ofertaCultivoNombre.textContent = cultivo.nombreProducto;
+            ofertaPrecioNormal.textContent = formatearCOP(cultivo.precioPorUnidad);
+            ofertaPrecioInput.value = cultivo.precioOferta ? cultivo.precioOferta : '';
+            ofertaMotivoInput.value = cultivo.motivoOferta || '';
+
+            btnQuitarOferta.style.display = cultivo.enOferta ? 'inline-flex' : 'none';
+            btnGuardarOferta.textContent = cultivo.enOferta ? '⚡ Actualizar AgroFlash' : '⚡ Activar AgroFlash';
+
+            modalOferta.classList.add('open');
+        }
+
+        function cerrarModalOferta() {
+            modalOferta.classList.remove('open');
+            formOferta.reset();
+            mostrarErrorOferta('');
+        }
+
+        document.querySelectorAll('.offer-preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ofertaMotivoInput.value = btn.dataset.motivo || '';
+            });
+        });
+
+        closeOfertaModal.addEventListener('click', cerrarModalOferta);
+        cancelOfertaModal.addEventListener('click', cerrarModalOferta);
+        modalOferta.addEventListener('click', (e) => {
+            if (e.target === modalOferta) cerrarModalOferta();
+        });
+
+        formOferta.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            mostrarErrorOferta('');
+
+            const id = ofertaCultivoId.value;
+            const cultivo = cultivos.find(c => c._id === id);
+            if (!cultivo) return;
+
+            const precioTexto = ofertaPrecioInput.value.trim();
+            let precioOferta = null;
+
+            if (precioTexto !== '') {
+                precioOferta = Number(precioTexto);
+                if (isNaN(precioOferta) || precioOferta <= 0) {
+                    mostrarErrorOferta('El precio AgroFlash debe ser mayor a 0.');
+                    return;
+                }
+                if (precioOferta >= cultivo.precioPorUnidad) {
+                    mostrarErrorOferta(`El precio AgroFlash debe ser menor a ${formatearCOP(cultivo.precioPorUnidad)}.`);
+                    return;
+                }
+            }
+
+            btnGuardarOferta.disabled = true;
+            try {
+                const response = await fetch(`${API_URL}/cultivos/${id}/oferta`, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        enOferta: true,
+                        precioOferta: precioOferta,
+                        motivoOferta: ofertaMotivoInput.value.trim()
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.mensaje || 'No se pudo activar AgroFlash');
+                }
+
+                cerrarModalOferta();
+                await cargarCultivos();
+            } catch (error) {
+                mostrarErrorOferta('❌ ' + error.message);
+            } finally {
+                btnGuardarOferta.disabled = false;
+            }
+        });
+
+        btnQuitarOferta.addEventListener('click', async () => {
+            const id = ofertaCultivoId.value;
+            if (!id) return;
+
+            btnQuitarOferta.disabled = true;
+            try {
+                const response = await fetch(`${API_URL}/cultivos/${id}/oferta`, {
+                    method: 'PATCH',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ enOferta: false })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.mensaje || 'No se pudo quitar de Zona Xpress');
+                }
+
+                cerrarModalOferta();
+                await cargarCultivos();
+            } catch (error) {
+                mostrarErrorOferta('❌ ' + error.message);
+            } finally {
+                btnQuitarOferta.disabled = false;
+            }
+        });
+
+        // ============ MODAL CULTIVO ============
         function abrirModal(cultivo = null) {
             editandoId = cultivo?._id || null;
             modalTitulo.textContent = cultivo ? 'Editar cultivo' : 'Nuevo cultivo';
@@ -476,22 +907,24 @@
                 cropDepartamento.value = cultivo.ubicacion?.departamento || '';
                 cropMunicipio.value = cultivo.ubicacion?.municipio || '';
                 cropObservaciones.value = cultivo.observaciones || '';
-                if (cultivo.imagenes?.[0]?.url) {
-                    imagenSeleccionada = cultivo.imagenes[0].url;
-                    cropPreview.src = imagenSeleccionada;
-                    cropPreview.style.display = 'block';
-                } else {
-                    imagenSeleccionada = null;
-                    cropPreview.style.display = 'none';
-                    cropPreview.src = '';
-                }
+                imagenSeleccionada = cultivo.imagenes?.[0]?.url || null;
+                mostrarVistaPrevia(imagenSeleccionada);
+
+                cropEsCombo.checked = Boolean(cultivo.esCombo);
+                comboItems = Array.isArray(cultivo.itemsCombo) ? [...cultivo.itemsCombo] : [];
+                comboItemsBox.classList.toggle('hidden', !cropEsCombo.checked);
+                renderizarComboItems();
             } else {
                 form.reset();
                 editId.value = '';
                 cropEstado.value = 'En crecimiento';
                 imagenSeleccionada = null;
-                cropPreview.style.display = 'none';
-                cropPreview.src = '';
+                mostrarVistaPrevia(null);
+
+                cropEsCombo.checked = false;
+                comboItems = [];
+                comboItemsBox.classList.add('hidden');
+                renderizarComboItems();
             }
 
             modal.classList.add('open');
@@ -502,8 +935,11 @@
             editandoId = null;
             form.reset();
             imagenSeleccionada = null;
-            cropPreview.style.display = 'none';
-            cropPreview.src = '';
+            mostrarVistaPrevia(null);
+            cropEsCombo.checked = false;
+            comboItems = [];
+            comboItemsBox.classList.add('hidden');
+            renderizarComboItems();
         }
 
         // ============ VISTA PREVIA DE IMAGEN ============
@@ -511,15 +947,14 @@
             const archivo = e.target.files[0];
             if (!archivo) {
                 imagenSeleccionada = null;
-                cropPreview.style.display = 'none';
+                mostrarVistaPrevia(null);
                 return;
             }
 
             const lector = new FileReader();
             lector.onload = (evento) => {
                 imagenSeleccionada = evento.target.result;
-                cropPreview.src = imagenSeleccionada;
-                cropPreview.style.display = 'block';
+                mostrarVistaPrevia(imagenSeleccionada);
             };
             lector.readAsDataURL(archivo);
         });
@@ -587,9 +1022,17 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            if (cropEsCombo.checked && comboItems.length < 2) {
+                alert('Si es una Canasta / Combo, agrega al menos 2 productos en la lista (ej: Papa y Tomate).');
+                comboItemInput.focus();
+                return;
+            }
+
             const datos = {
                 nombreProducto: cropNombre.value.trim(),
                 categoria: cropCategoria.value,
+                esCombo: cropEsCombo.checked,
+                itemsCombo: cropEsCombo.checked ? [...comboItems] : [],
                 cantidadDisponible: parseInt(cropCantidad.value) || 0,
                 precioPorUnidad: parseInt(cropPrecio.value) || 0,
                 estado: cropEstado.value,
