@@ -108,10 +108,12 @@
                 <div class="filters-bar-custom">
                     <div class="search-box">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="searchMercado" placeholder="¿Qué buscas hoy? Ej: Tomate, Café, Papa..." aria-label="Buscar producto">
+                        <input type="text" id="searchMercado" placeholder="¿Qué buscas hoy? Ej: Tomate, Café, Papa, Combo..." aria-label="Buscar producto">
                     </div>
                     <select id="filterCategoriaMercado" aria-label="Filtrar por categoría">
                         <option value="">Todos los tipos</option>
+                        <option value="__COMBOS__">🧺 Combos y Canastas</option>
+                        <option value="__AGROFLASH__">⚡ Ofertas AgroFlash</option>
                         <option value="Cereal">Cereal</option>
                         <option value="Granos">Granos</option>
                         <option value="Hortaliza">Hortaliza</option>
@@ -433,8 +435,28 @@
                     ? `<img src="${escaparHtml(c.imagenes[0].url)}" alt="${escaparHtml(c.nombreProducto)}">`
                     : iconoPorCategoria(c.categoria);
 
-                const flashTag = c.enOferta
-                    ? `<div class="product-flash-tag">⚡ AgroFlash</div>`
+                const itemsComboLimpios = Array.isArray(c.itemsCombo)
+                    ? c.itemsCombo.map((i) => String(i || '').trim()).filter(Boolean)
+                    : [];
+
+                const tags = [];
+                if (c.enOferta) tags.push(`<div class="product-flash-tag">⚡ AgroFlash</div>`);
+                if (c.esCombo) tags.push(`<div class="product-combo-tag">🧺 Combo del campo</div>`);
+                const tagsHtml = tags.length ? `<div class="product-tags-row">${tags.join('')}</div>` : '';
+
+                const descripcionTexto = (c.observaciones || c.descripcion || '').trim();
+                const descripcionHtml = descripcionTexto
+                    ? `<p class="product-card-desc">${escaparHtml(descripcionTexto)}</p>`
+                    : '';
+
+                const comboBoxHtml = (c.esCombo && itemsComboLimpios.length > 0)
+                    ? `
+                    <div class="product-combo-box">
+                        <div class="product-combo-label"><i class="bi bi-basket2-fill"></i> Incluye este combo:</div>
+                        <div class="product-combo-pills">
+                            ${itemsComboLimpios.map((item) => `<span class="combo-item-pill">✓ ${escaparHtml(item)}</span>`).join('')}
+                        </div>
+                    </div>`
                     : '';
 
                 const botonAccion = esPropia
@@ -453,12 +475,14 @@
                         ${badgeStock}
                     </div>
                     <div class="product-card-body">
-                        ${flashTag}
+                        ${tagsHtml}
                         <h3 class="product-card-title">${escaparHtml(c.nombreProducto)}</h3>
                         <div class="product-card-price">
                             $${precioMostrado} COP
                             ${tieneRebaja ? `<span class="product-price-old">$${precioNormal.toLocaleString('es-CO')}</span>` : ''}
                         </div>
+                        ${descripcionHtml}
+                        ${comboBoxHtml}
                         <div class="product-card-info">
                             <div><i class="bi bi-box-seam"></i> Disponible: <strong>${c.cantidadDisponible} ${unidad}</strong></div>
                             <div><i class="bi bi-geo-alt-fill"></i> ${lugar}</div>
@@ -492,8 +516,19 @@
 
             limiteMostrado = 12;
             filtradosActuales = productosMercado.filter((c) => {
-                const matchTexto = c.nombreProducto.toLowerCase().includes(texto);
-                const matchCat = !cat || c.categoria === cat;
+                const textoCombo = Array.isArray(c.itemsCombo) ? c.itemsCombo.join(' ') : '';
+                const textoDesc = c.observaciones || c.descripcion || '';
+                const matchTexto = !texto || `${c.nombreProducto || ''} ${textoCombo} ${textoDesc}`.toLowerCase().includes(texto);
+
+                let matchCat = true;
+                if (cat === '__COMBOS__') {
+                    matchCat = Boolean(c.esCombo);
+                } else if (cat === '__AGROFLASH__') {
+                    matchCat = Boolean(c.enOferta);
+                } else if (cat) {
+                    matchCat = c.categoria === cat;
+                }
+
                 const lugar = `${c.ubicacion?.departamento || ''} ${c.ubicacion?.municipio || ''}`.toLowerCase();
                 const matchCiudad = !ciudad || lugar.includes(ciudad);
                 return matchTexto && matchCat && matchCiudad;
@@ -513,8 +548,15 @@
             document.getElementById('ofertaCultivoId').value = producto._id;
             document.getElementById('ofertaProductoNombre').textContent = producto.nombreProducto;
             const precio = Number(precioBase || 0).toLocaleString('es-CO');
+            const itemsComboLimpios = Array.isArray(producto.itemsCombo)
+                ? producto.itemsCombo.map((i) => String(i || '').trim()).filter(Boolean)
+                : [];
+            const extraCombo = (producto.esCombo && itemsComboLimpios.length > 0)
+                ? ` • Combo: ${itemsComboLimpios.join(', ')}`
+                : '';
+
             document.getElementById('ofertaProductoInfo').textContent =
-                `$${precio} COP • Disponible: ${producto.cantidadDisponible} ${producto.unidadMedida || 'kg'}`;
+                `$${precio} COP • Disponible: ${producto.cantidadDisponible} ${producto.unidadMedida || 'kg'}${extraCombo}`;
 
             document.getElementById('ofertaCantidad').max = producto.cantidadDisponible;
             document.getElementById('ofertaCantidad').value = '';

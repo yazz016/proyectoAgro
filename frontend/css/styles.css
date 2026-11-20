@@ -4928,4 +4928,86 @@ body.high-contrast .pagos-summary-sub {
     border-color: #93C5FD;
 }
 
+/* ================== MARKETPLACE: COMBOS Y DESCRIPCIÓN DE COSECHAS ===================== */
+.product-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.product-combo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #ECFDF5;
+    color: #065F46;
+    border: 1px solid #6EE7B7;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.product-card-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted, #475569);
+    line-height: 1.4;
+    margin: 2px 0 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-combo-box {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin: 4px 0 6px;
+}
+
+.product-combo-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #166534;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.product-combo-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.combo-item-pill {
+    background: #FFFFFF;
+    color: #14532D;
+    border: 1px solid #86EFAC;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+
+body.high-contrast .product-combo-box {
+    background: #000000;
+    border-color: #FDE047;
+}
+
+body.high-contrast .product-combo-label,
+body.high-contrast .product-card-desc {
+    color: #FDE047;
+}
+
+body.high-contrast .combo-item-pill,
+body.high-contrast .product-combo-tag {
+    background: #FDE047;
+    color: #000000;
+    border-color: #FDE047;
+}
 
