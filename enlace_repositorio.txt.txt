@@ -1,0 +1,3 @@
+EVIDENCIA: GA7-220501096-AA3-EV01: Codificación de módulos del software stand-alone, web y móvil
+PROYECTO: AgroXpress
+ENLACE REPOSITORIO GITHUB: https://github.com/yazz016/proyectoAgro

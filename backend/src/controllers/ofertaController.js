@@ -41,7 +41,7 @@ async function sellarVentaInalterable(oferta) {
         compradorNombre: oferta.compradorNombre || 'Comprador',
         nombreProducto: oferta.nombreProducto,
         cantidad,
-        unidadMedida: oferta.unidadMedida || 'kg',
+        unidadMedida: oferta.unidadMedida || 'kilo',
         precioUnitario,
         totalVenta,
         fechaVenta,
@@ -67,7 +67,7 @@ const crearOferta = async (req, res) => {
         const { cultivoId, cantidadSolicitada, precioOfrecido, compradorTelefono, mensaje } = req.body;
 
         const cultivo = await Cultivo.findById(cultivoId);
-        if (!cultivo) {
+        if (!cultivo || cultivo.eliminado === true) {
             return res.status(404).json({ mensaje: 'Cultivo no encontrado' });
         }
 
@@ -86,7 +86,7 @@ const crearOferta = async (req, res) => {
 
         if (cantidadNum > cultivo.cantidadDisponible) {
             return res.status(400).json({
-                mensaje: `Solo quedan ${cultivo.cantidadDisponible} ${cultivo.unidadMedida || 'kg'} disponibles`
+                mensaje: `Solo quedan ${cultivo.cantidadDisponible} ${cultivo.unidadMedida || 'kilo'} disponibles`
             });
         }
 
@@ -101,7 +101,7 @@ const crearOferta = async (req, res) => {
             compradorNombre: comprador?.nombre || 'Comprador',
             compradorTelefono: telefonoLimpio,
             cantidadSolicitada: cantidadNum,
-            unidadMedida: cultivo.unidadMedida || 'kg',
+            unidadMedida: cultivo.unidadMedida || 'kilo',
             precioOfrecido: precioOfrecido || cultivo.precioPorUnidad,
             mensaje: mensaje || ''
         });
@@ -210,7 +210,7 @@ const responderOferta = async (req, res) => {
             if (cultivo) {
                 if (cultivo.cantidadDisponible < oferta.cantidadSolicitada) {
                     return res.status(400).json({
-                        mensaje: `No quedan suficientes ${cultivo.unidadMedida || 'kg'} disponibles (quedan ${cultivo.cantidadDisponible})`
+                        mensaje: `No quedan suficientes ${cultivo.unidadMedida || 'kilo'} disponibles (quedan ${cultivo.cantidadDisponible})`
                     });
                 }
 
@@ -291,10 +291,10 @@ const agregarMensajeOferta = async (req, res) => {
     }
 };
 
-// El comprador registra pago acordado (Contra entrega o Nequi / Bre-B)
+// El comprador registra pago acordado (Contra entrega con foto + firma + referencia, o Nequi / Bre-B)
 const registrarMetodoPago = async (req, res) => {
     try {
-        const { metodoPago, referenciaPago } = req.body;
+        const { metodoPago, referenciaPago, fotoEntrega, firmaCliente } = req.body;
         if (!['contra_entrega', 'nequi_breb'].includes(metodoPago)) {
             return res.status(400).json({ mensaje: 'Método de pago no válido' });
         }
@@ -316,14 +316,34 @@ const registrarMetodoPago = async (req, res) => {
             return res.status(400).json({ mensaje: 'Este pago ya fue confirmado' });
         }
 
+        const refLimpia = String(referenciaPago || '').trim().slice(0, 60);
+
+        if (metodoPago === 'contra_entrega') {
+            const fotoLimpia = String(fotoEntrega || '').trim();
+            const firmaLimpia = String(firmaCliente || '').trim();
+
+            if (!fotoLimpia || !fotoLimpia.startsWith('data:image/')) {
+                return res.status(400).json({ mensaje: 'Debes subir la foto de entrega para validar el pago contraentrega.' });
+            }
+            if (!firmaLimpia || !firmaLimpia.startsWith('data:image/')) {
+                return res.status(400).json({ mensaje: 'Debes registrar la firma de recibido del cliente.' });
+            }
+            if (!refLimpia) {
+                return res.status(400).json({ mensaje: 'Debes escribir la referencia del pago contraentrega.' });
+            }
+
+            oferta.fotoEntrega = fotoLimpia;
+            oferta.firmaCliente = firmaLimpia;
+        }
+
         oferta.metodoPago = metodoPago;
         oferta.estadoPago = 'reportado';
-        oferta.referenciaPago = String(referenciaPago || '').trim().slice(0, 60);
+        oferta.referenciaPago = refLimpia;
         await oferta.save();
 
         res.json({
             mensaje: metodoPago === 'contra_entrega'
-                ? 'Acuerdo de pago contra entrega registrado. El agricultor lo confirmará al entregar.'
+                ? 'Pago contraentrega validado con foto, firma y referencia. El agricultor lo confirmará.'
                 : 'Transferencia Nequi/Bre-B reportada. El agricultor la confirmará al verificarla.',
             oferta
         });
@@ -397,7 +417,6 @@ const iniciarPagoWompiPSE = async (req, res) => {
         const publicKey = process.env.WOMPI_PUBLIC_KEY;
         const integritySecret = process.env.WOMPI_INTEGRITY_SECRET;
 
-        // MODO SIMULADOR SANDBOX ACADÉMICO LOCAL (sin exponer cédula/RUT/cuenta bancaria)
         if (!publicKey || !integritySecret) {
             const secretoLocal = process.env.JWT_SECRET || 'AGROXPRESS-SANDBOX-ACADEMICO-2026';
             const firmaSimulada = crypto
@@ -426,7 +445,6 @@ const iniciarPagoWompiPSE = async (req, res) => {
             });
         }
 
-        // MODO WOMPI REAL/SANDBOX EXTERNO (si en el futuro agregas tus llaves en .env)
         const signatureIntegrity = crypto
             .createHash('sha256')
             .update(`${referencia}${amountInCents}${currency}${integritySecret}`)
@@ -510,7 +528,6 @@ const verificarPagoWompi = async (req, res) => {
             });
         }
 
-        // Verificación externa real si existen llaves de Wompi en .env
         const esSandbox = publicKey.startsWith('pub_test_');
         const baseApi = esSandbox ? 'https://sandbox.wompi.co/v1' : 'https://production.wompi.co/v1';
         const resp = await consultarJsonHttps(`${baseApi}/transactions/${encodeURIComponent(transactionId)}`);
@@ -602,6 +619,8 @@ const obtenerComprobanteVenta = async (req, res) => {
                 metodoPago: oferta.metodoPago || 'sin_definir',
                 estadoPago: oferta.estadoPago || 'pendiente',
                 referenciaPago: oferta.referenciaPago || '',
+                fotoEntrega: oferta.fotoEntrega || '',
+                firmaCliente: oferta.firmaCliente || '',
                 wompiTransactionId: oferta.wompiTransactionId || '',
                 fechaPago: oferta.fechaPago || null,
                 agricultor: {
@@ -674,4 +693,3 @@ module.exports = {
     obtenerComprobanteVenta,
     obtenerRegistroVentas
 };
-

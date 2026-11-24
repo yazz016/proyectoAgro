@@ -1,5 +1,15 @@
 const Cultivo = require('../models/Cultivo');
 
+const FILTRO_ACTIVOS = {
+    eliminado: { $ne: true },
+    activo: { $ne: false },
+    estado: { $ne: 'Eliminado' }
+};
+
+function estaEliminado(cultivo) {
+    return !cultivo || cultivo.eliminado === true || cultivo.activo === false || cultivo.estado === 'Eliminado';
+}
+
 // Limpia y valida los productos cuando una publicación es una Canasta / Combo
 function normalizarCombo(datos) {
     if (datos.esCombo === undefined) return { error: null };
@@ -28,8 +38,10 @@ function normalizarCombo(datos) {
 
 const obtenerMisCultivos = async (req, res) => {
     try {
-        const cultivos = await Cultivo.find({ agricultorId: req.usuario.id })
-            .sort({ createdAt: -1 });
+        const cultivos = await Cultivo.find({
+            agricultorId: req.usuario.id,
+            ...FILTRO_ACTIVOS
+        }).sort({ createdAt: -1 });
         res.json(cultivos);
     } catch (error) {
         res.status(500).json({ mensaje: error.message });
@@ -41,7 +53,8 @@ const obtenerCultivosMarketplace = async (req, res) => {
     try {
         const cultivos = await Cultivo.find({
             disponibleVenta: true,
-            cantidadDisponible: { $gt: 0 }
+            cantidadDisponible: { $gt: 0 },
+            ...FILTRO_ACTIVOS
         })
             .populate('agricultorId', 'nombre finca.nombre finca.ubicacion')
             .sort({ enOferta: -1, createdAt: -1 });
@@ -62,6 +75,8 @@ const crearCultivo = async (req, res) => {
 
         const nuevoCultivo = new Cultivo({
             ...datos,
+            eliminado: false,
+            eliminadoEn: null,
             agricultorId: req.usuario.id
         });
         await nuevoCultivo.save();
@@ -75,7 +90,7 @@ const obtenerCultivo = async (req, res) => {
     try {
         const cultivo = await Cultivo.findById(req.params.id)
             .populate('agricultorId', 'nombre finca.nombre finca.ubicacion');
-        if (!cultivo) {
+        if (estaEliminado(cultivo)) {
             return res.status(404).json({ mensaje: 'Cultivo no encontrado' });
         }
         res.json(cultivo);
@@ -87,7 +102,7 @@ const obtenerCultivo = async (req, res) => {
 const actualizarCultivo = async (req, res) => {
     try {
         const cultivo = await Cultivo.findById(req.params.id);
-        if (!cultivo) {
+        if (estaEliminado(cultivo)) {
             return res.status(404).json({ mensaje: 'Cultivo no encontrado' });
         }
 
@@ -96,7 +111,7 @@ const actualizarCultivo = async (req, res) => {
         }
 
         // Se apartan los campos que el cliente no puede modificar
-        const { agricultorId, createdAt, ...datos } = req.body;
+        const { agricultorId, createdAt, eliminado, eliminadoEn, ...datos } = req.body;
 
         const { error } = normalizarCombo(datos);
         if (error) {
@@ -127,7 +142,7 @@ const actualizarCultivo = async (req, res) => {
 const toggleOfertaCultivo = async (req, res) => {
     try {
         const cultivo = await Cultivo.findById(req.params.id);
-        if (!cultivo) {
+        if (estaEliminado(cultivo)) {
             return res.status(404).json({ mensaje: 'Cultivo no encontrado' });
         }
 
@@ -180,10 +195,11 @@ const toggleOfertaCultivo = async (req, res) => {
     }
 };
 
+// Borrado lógico (Soft Delete) para ocultar el cultivo del listado activo y del Marketplace
 const eliminarCultivo = async (req, res) => {
     try {
         const cultivo = await Cultivo.findById(req.params.id);
-        if (!cultivo) {
+        if (estaEliminado(cultivo)) {
             return res.status(404).json({ mensaje: 'Cultivo no encontrado' });
         }
 
@@ -191,7 +207,12 @@ const eliminarCultivo = async (req, res) => {
             return res.status(403).json({ mensaje: 'No autorizado' });
         }
 
-        await cultivo.deleteOne();
+        cultivo.eliminado = true;
+        cultivo.eliminadoEn = new Date();
+        cultivo.disponibleVenta = false;
+        cultivo.enOferta = false;
+        await cultivo.save();
+
         res.json({ mensaje: 'Cultivo eliminado correctamente' });
     } catch (error) {
         res.status(500).json({ mensaje: error.message });

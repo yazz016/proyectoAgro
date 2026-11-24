@@ -192,6 +192,22 @@
         </div>
     </div>
 
+    <!-- ========== MODAL VER DETALLE DE MI OFERTA ========== -->
+    <div class="modal-overlay" id="modalMiOferta">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h2><i class="bi bi-receipt-cutoff"></i> Detalle de tu oferta</h2>
+                <button class="close-modal" id="closeMiOfertaModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body" id="modalMiOfertaBody">
+                <!-- Se llena dinámicamente con JS -->
+            </div>
+            <div class="modal-footer" id="modalMiOfertaFooter">
+                <button type="button" class="btn-cancel" id="btnCerrarMiOferta">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== MODAL NOTIFICACIONES / OFERTAS Y CHAT ========== -->
     <div class="modal-overlay" id="modalNotificaciones">
         <div class="modal-content" style="max-width:620px;">
@@ -200,9 +216,10 @@
                 <button class="close-modal" id="closeNotifModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="modal-body">
-                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <div class="notif-tabs-row" style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
                     <button type="button" class="btn-save" id="tabRecibidas" style="flex:1;">Ofertas recibidas</button>
                     <button type="button" class="btn-cancel" id="tabEnviadas" style="flex:1;">Mis ofertas enviadas</button>
+                    <button type="button" class="btn-cancel" id="tabRechazadas" style="flex:1;">❌ Rechazadas</button>
                 </div>
                 <div id="notifLista" class="notif-list">
                     <p class="text-muted text-center">Cargando ofertas...</p>
@@ -235,6 +252,23 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Accesos rápidos adaptados por rol -->
+                <div class="profile-quick-actions" id="profileQuickActions">
+                    <button type="button" class="profile-action-btn" id="btnPerfilMensajes">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        <span>Mensajes</span>
+                    </button>
+                    <button type="button" class="profile-action-btn" id="btnPerfilOfertas">
+                        <i class="bi bi-tag-fill"></i>
+                        <span>Mis ofertas</span>
+                    </button>
+                    <a href="#" target="_blank" rel="noopener" class="profile-action-btn whatsapp-btn" id="btnPerfilWhatsapp">
+                        <i class="bi bi-whatsapp"></i>
+                        <span>WhatsApp</span>
+                    </a>
+                </div>
+
                 <div class="profile-details-list">
                     <div class="profile-detail-item">
                         <span class="detail-label"><i class="bi bi-envelope-fill"></i> Correo electrónico</span>
@@ -244,7 +278,7 @@
                         <span class="detail-label"><i class="bi bi-person-badge-fill"></i> Tipo de cuenta</span>
                         <span class="detail-value" id="perfilTipo">-</span>
                     </div>
-                    <div class="profile-detail-item">
+                    <div class="profile-detail-item" id="perfilWhatsappItem">
                         <span class="detail-label"><i class="bi bi-whatsapp" style="color:#16A34A;"></i> WhatsApp de ventas / Business (opcional)</span>
                         <div class="whatsapp-input-row">
                             <input type="tel" id="inputWhatsapp" placeholder="Ej: 573001234567">
@@ -289,6 +323,7 @@
 
         let productosMercado = [];
         let filtradosActuales = [];
+        let misOfertasPorCultivo = {};
         let limiteMostrado = 12;
 
         const paramsUrl = new URLSearchParams(window.location.search);
@@ -305,6 +340,7 @@
         const modalOferta = document.getElementById('modalOferta');
         const formOferta = document.getElementById('formOferta');
         const btnEnviarOferta = document.getElementById('btnEnviarOferta');
+        const modalMiOferta = document.getElementById('modalMiOferta');
 
         const iconoGranoCafeGrande = `
             <svg viewBox="0 0 24 24" width="44" height="44" fill="none" aria-hidden="true">
@@ -339,12 +375,36 @@
             }, 4500);
         }
 
+        function mapearMisOfertas(ofertasLista) {
+            const agrupadas = {};
+            (ofertasLista || []).forEach((o) => {
+                const cid = String(o.cultivoId?._id || o.cultivoId || '');
+                if (!cid) return;
+                if (!agrupadas[cid]) agrupadas[cid] = [];
+                agrupadas[cid].push(o);
+            });
+
+            const resultado = {};
+            Object.keys(agrupadas).forEach((cid) => {
+                const lista = agrupadas[cid];
+                resultado[cid] = lista.find((o) => o.estado === 'aceptada')
+                    || lista.find((o) => o.estado === 'pendiente')
+                    || lista[0];
+            });
+            misOfertasPorCultivo = resultado;
+        }
+
         async function cargarMarketplace() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${API_URL}/cultivos/marketplace`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
+                const [response, resEnv] = await Promise.all([
+                    fetch(`${API_URL}/cultivos/marketplace`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    }),
+                    fetch(`${API_URL}/ofertas/enviadas`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    }).catch(() => null)
+                ]);
 
                 if (response.status === 401) {
                     cerrarSesion();
@@ -352,7 +412,15 @@
                 }
                 if (!response.ok) throw new Error('No se pudieron cargar los productos');
 
-                productosMercado = await response.json();
+                const crudos = await response.json();
+                productosMercado = (Array.isArray(crudos) ? crudos : []).filter(
+                    (c) => !c.eliminado && c.activo !== false && c.estado !== 'Eliminado'
+                );
+
+                if (resEnv && resEnv.ok) {
+                    const ofertasEnv = await resEnv.json();
+                    mapearMisOfertas(ofertasEnv);
+                }
 
                 document.getElementById('statCosechas').textContent = productosMercado.length;
                 const productoresUnicos = new Set(
@@ -362,6 +430,10 @@
 
                 aplicarFiltrosMercado();
                 enfocarProductoDesdeInicio();
+
+                if (typeof marcarSeccionComoVista === 'function') {
+                    marcarSeccionComoVista('marketplace', productosMercado.map((p) => String(p._id)));
+                }
             } catch (error) {
                 grid.innerHTML = `
                     <div class="marketplace-empty">
@@ -418,13 +490,15 @@
                 const precioNormal = Number(c.precioPorUnidad || 0);
                 const tieneRebaja = Boolean(c.enOferta && c.precioOferta && c.precioOferta < precioNormal);
                 const precioMostrado = (tieneRebaja ? Number(c.precioOferta) : precioNormal).toLocaleString('es-CO');
-                const unidad = escaparHtml(c.unidadMedida || 'kg');
+                const unidadRaw = c.unidadMedida === 'kg' ? 'kilo' : (c.unidadMedida || 'kilo');
+                const unidad = escaparHtml(unidadRaw);
                 const depto = c.ubicacion?.departamento || 'Sin especificar';
                 const muni = c.ubicacion?.municipio || '';
                 const lugar = escaparHtml(muni && muni !== 'Sin especificar' ? `${muni}, ${depto}` : depto);
                 const agricultor = escaparHtml(c.agricultorId?.nombre || 'Productor local');
                 const nombreFinca = c.agricultorId?.finca?.nombre ? ` • ${escaparHtml(c.agricultorId.finca.nombre)}` : '';
                 const esPropia = miId && c.agricultorId?._id === miId;
+                const miOferta = !esPropia ? misOfertasPorCultivo[String(c._id)] : null;
 
                 const pocasUnidades = Number(c.cantidadDisponible) <= 10;
                 const badgeStock = pocasUnidades
@@ -442,9 +516,19 @@
                 const tags = [];
                 if (c.enOferta) tags.push(`<div class="product-flash-tag">⚡ AgroFlash</div>`);
                 if (c.esCombo) tags.push(`<div class="product-combo-tag">🧺 Combo del campo</div>`);
+                if (miOferta) {
+                    if (miOferta.estado === 'aceptada') {
+                        const textoAceptada = miOferta.estadoPago === 'pagado' ? '💳 Oferta pagada' : '✅ Oferta aceptada';
+                        tags.push(`<div class="product-oferta-chip aceptada"><i class="bi bi-check-circle-fill"></i> ${textoAceptada}</div>`);
+                    } else if (miOferta.estado === 'rechazada') {
+                        tags.push(`<div class="product-oferta-chip rechazada"><i class="bi bi-x-circle-fill"></i> Oferta rechazada</div>`);
+                    } else {
+                        tags.push(`<div class="product-oferta-chip pendiente"><i class="bi bi-send-check-fill"></i> Oferta enviada</div>`);
+                    }
+                }
                 const tagsHtml = tags.length ? `<div class="product-tags-row">${tags.join('')}</div>` : '';
 
-                const descripcionTexto = (c.observaciones || c.descripcion || '').trim();
+                const descripcionTexto = String(c.observaciones || c.descripcion || '').trim();
                 const descripcionHtml = descripcionTexto
                     ? `<p class="product-card-desc">${escaparHtml(descripcionTexto)}</p>`
                     : '';
@@ -459,16 +543,25 @@
                     </div>`
                     : '';
 
-                const botonAccion = esPropia
-                    ? `<a href="cultivos.html" class="btn-own-crop">
+                let botonAccion = '';
+                if (esPropia) {
+                    botonAccion = `<a href="cultivos.html" class="btn-own-crop">
                             <i class="bi bi-flower1"></i> Tu cosecha • Gestionar
-                       </a>`
-                    : `<button type="button" class="btn-offer-card" onclick="abrirModalOferta('${c._id}')">
+                       </a>`;
+                } else if (miOferta) {
+                    botonAccion = `<button type="button" class="btn-ver-mi-oferta ${escaparHtml(miOferta.estado)}" onclick="verDetalleMiOferta('${c._id}')">
+                            <i class="bi bi-eye-fill"></i> Ver mi oferta (${miOferta.cantidadSolicitada} ${unidad})
+                       </button>`;
+                } else {
+                    botonAccion = `<button type="button" class="btn-offer-card" onclick="abrirModalOferta('${c._id}')">
                             <i class="bi bi-tag-fill"></i> Hacer oferta directa
                        </button>`;
+                }
+
+                const claseOfertada = miOferta ? `product-card-ofertada estado-${escaparHtml(miOferta.estado)}` : '';
 
                 return `
-                <article class="product-card" id="card-${c._id}">
+                <article class="product-card ${claseOfertada}" id="card-${c._id}">
                     <div class="product-card-img">
                         ${imgHtml}
                         <span class="product-cat-badge">${textoBadgeCategoria(c.categoria)}</span>
@@ -478,13 +571,17 @@
                         ${tagsHtml}
                         <h3 class="product-card-title">${escaparHtml(c.nombreProducto)}</h3>
                         <div class="product-card-price">
-                            $${precioMostrado} COP
+                            $${precioMostrado} COP <span>/ ${unidad}</span>
                             ${tieneRebaja ? `<span class="product-price-old">$${precioNormal.toLocaleString('es-CO')}</span>` : ''}
                         </div>
                         ${descripcionHtml}
                         ${comboBoxHtml}
                         <div class="product-card-info">
                             <div><i class="bi bi-box-seam"></i> Disponible: <strong>${c.cantidadDisponible} ${unidad}</strong></div>
+                            <div class="product-unit-price-line">
+                                <i class="bi bi-tag-fill"></i> Precio por ${unidad}: <strong>$${precioMostrado} COP</strong>
+                                ${tieneRebaja ? `<span class="product-price-old">$${precioNormal.toLocaleString('es-CO')}</span>` : ''}
+                            </div>
                             <div><i class="bi bi-geo-alt-fill"></i> ${lugar}</div>
                             <div>
                                 <i class="bi bi-patch-check-fill"></i> ${agricultor}${nombreFinca}
@@ -508,6 +605,93 @@
                 paginacionBox.classList.add('hidden');
             }
         }
+
+        function verDetalleMiOferta(cultivoId) {
+            const o = misOfertasPorCultivo[String(cultivoId)];
+            if (!o) return;
+            const producto = productosMercado.find((p) => String(p._id) === String(cultivoId));
+            const unidad = escaparHtml(o.unidadMedida || producto?.unidadMedida || 'kilo');
+            const precioUnit = Number(o.precioOfrecido || 0);
+            const total = precioUnit * Number(o.cantidadSolicitada || 0);
+            const fechaTxt = o.createdAt
+                ? new Date(o.createdAt).toLocaleDateString('es-CO', {
+                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                })
+                : '-';
+
+            const estadoMapa = {
+                pendiente: { clase: 'badge-warning', texto: '⏳ Pendiente de respuesta del agricultor' },
+                aceptada: { clase: 'badge-success', texto: '✅ Oferta aceptada' },
+                rechazada: { clase: 'badge-danger', texto: '❌ Oferta rechazada' }
+            };
+            const est = estadoMapa[o.estado] || estadoMapa.pendiente;
+            const agricultorNombre = o.agricultorId?.nombre || producto?.agricultorId?.nombre || 'Productor local';
+
+            document.getElementById('modalMiOfertaBody').innerHTML = `
+                <div class="mi-oferta-detalle-head">
+                    <div>
+                        <h3>${escaparHtml(o.nombreProducto || producto?.nombreProducto || 'Cultivo')}</h3>
+                        <p>Productor: <strong>${escaparHtml(agricultorNombre)}</strong></p>
+                    </div>
+                    <span class="badge ${est.clase}">${est.texto}</span>
+                </div>
+
+                <div class="mi-oferta-datos-grid">
+                    <div class="mi-oferta-dato">
+                        <span>Cantidad solicitada</span>
+                        <strong>${o.cantidadSolicitada} ${unidad}</strong>
+                    </div>
+                    <div class="mi-oferta-dato">
+                        <span>Precio ofrecido c/u</span>
+                        <strong>$${precioUnit.toLocaleString('es-CO')} COP</strong>
+                    </div>
+                    <div class="mi-oferta-dato destacado">
+                        <span>Total de tu oferta</span>
+                        <strong>$${total.toLocaleString('es-CO')} COP</strong>
+                    </div>
+                    <div class="mi-oferta-dato">
+                        <span>Fecha de envío</span>
+                        <strong>${escaparHtml(fechaTxt)}</strong>
+                    </div>
+                </div>
+
+                <div class="mi-oferta-mensaje-box">
+                    <span><i class="bi bi-chat-quote-fill"></i> Tu mensaje enviado:</span>
+                    <p>${o.mensaje ? escaparHtml(o.mensaje) : '<em>No escribiste mensaje adicional.</em>'}</p>
+                </div>
+
+                ${o.estado === 'aceptada' ? `
+                    <div class="mi-oferta-pago-estado">
+                        <i class="bi bi-credit-card-2-front-fill"></i>
+                        <span>Estado del pago: <strong>${o.estadoPago === 'pagado' ? '✅ Pagado y verificado' : '💳 Pendiente por pagar'}</strong></span>
+                    </div>
+                ` : ''}
+            `;
+
+            let footerBotones = `<button type="button" class="btn-cancel" onclick="cerrarModalMiOferta()">Cerrar</button>`;
+            if (o.estado === 'aceptada') {
+                footerBotones += `<a href="pagos.html" class="btn-save"><i class="bi bi-credit-card-fill"></i> Ir a Pagos y Comprobante</a>`;
+            } else if (o.estado === 'rechazada') {
+                footerBotones += `<button type="button" class="btn-save" onclick="reintentarOfertaDesdeDetalle('${escaparHtml(cultivoId)}')"><i class="bi bi-arrow-repeat"></i> Enviar nueva oferta</button>`;
+            }
+            document.getElementById('modalMiOfertaFooter').innerHTML = footerBotones;
+
+            modalMiOferta.classList.add('open');
+        }
+
+        function cerrarModalMiOferta() {
+            modalMiOferta.classList.remove('open');
+        }
+
+        function reintentarOfertaDesdeDetalle(cultivoId) {
+            cerrarModalMiOferta();
+            abrirModalOferta(cultivoId);
+        }
+
+        document.getElementById('closeMiOfertaModal').addEventListener('click', cerrarModalMiOferta);
+        modalMiOferta.addEventListener('click', (e) => {
+            if (e.target === modalMiOferta) cerrarModalMiOferta();
+        });
 
         function aplicarFiltrosMercado() {
             const texto = searchMercado.value.trim().toLowerCase();
@@ -556,7 +740,7 @@
                 : '';
 
             document.getElementById('ofertaProductoInfo').textContent =
-                `$${precio} COP • Disponible: ${producto.cantidadDisponible} ${producto.unidadMedida || 'kg'}${extraCombo}`;
+                `$${precio} COP / ${producto.unidadMedida || 'kilo'} • Disponible: ${producto.cantidadDisponible} ${producto.unidadMedida || 'kilo'}${extraCombo}`;
 
             document.getElementById('ofertaCantidad').max = producto.cantidadDisponible;
             document.getElementById('ofertaCantidad').value = '';
@@ -607,7 +791,8 @@
                 if (!response.ok) throw new Error(data.mensaje || 'No se pudo enviar la oferta');
 
                 cerrarModalOferta();
-                mostrarAvisoMercado('✅ ¡Oferta enviada! El agricultor la verá en su campanita de notificaciones.', 'success');
+                mostrarAvisoMercado('✅ ¡Oferta enviada! Ya puedes ver tu oferta directamente en la tarjeta.', 'success');
+                await cargarMarketplace();
                 if (typeof cargarNotificaciones === 'function') cargarNotificaciones();
             } catch (error) {
                 mostrarAvisoMercado('❌ ' + error.message, 'error');

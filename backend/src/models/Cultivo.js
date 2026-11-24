@@ -31,8 +31,8 @@ const CultivoSchema = new mongoose.Schema({
     },
     unidadMedida: {
         type: String,
-        enum: ['kg', 'libra', 'unidad', 'docena', 'tonelada'],
-        default: 'kg'
+        enum: ['kilo', 'bulto', 'unidad', 'carga', 'kg', 'libra', 'docena', 'tonelada'],
+        default: 'kilo'
     },
     precioPorUnidad: {
         type: Number,
@@ -89,6 +89,14 @@ const CultivoSchema = new mongoose.Schema({
     disponibleVenta: {
         type: Boolean,
         default: true
+    },
+    eliminado: {
+        type: Boolean,
+        default: false
+    },
+    eliminadoEn: {
+        type: Date,
+        default: null
     },
     observaciones: String,
     createdAt: {

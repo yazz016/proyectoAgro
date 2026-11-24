@@ -1,11 +1,10 @@
 // =====================
-// AGROXPRESS - AUTENTICACIÓN, PERFIL, PÁGINA DE PAGOS, HISTORIAL Y COMPROBANTE
+// AGROXPRESS - AUTENTICACIÓN, PERFIL, PAGOS, CONTRAENTREGA, BADGES DINÁMICOS Y COMPROBANTE
 // =====================
 
 const API_URL = 'http://localhost:3000/api';
 
 // ============ MENSAJES AMIGABLES ============
-
 const MENSAJES = {
     sinConexion: 'No pudimos conectar con el servidor. Verifica tu conexión.',
     camposVacios: 'Falta llenar algunos campos',
@@ -192,6 +191,109 @@ function cerrarSesion() {
     window.location.href = 'login.html';
 }
 
+// ============ CONTROL DINÁMICO DE ELEMENTOS VISTOS (BADGES DEL MENÚ LATERAL) ============
+function claveVistosUsuario() {
+    const u = obtenerUsuario();
+    return 'agro_vistos_' + (u?.id || u?._id || u?.email || 'anonimo');
+}
+
+function leerVistos() {
+    try {
+        return JSON.parse(localStorage.getItem(claveVistosUsuario())) || {};
+    } catch {
+        return {};
+    }
+}
+
+function guardarVistos(mapa) {
+    try {
+        localStorage.setItem(claveVistosUsuario(), JSON.stringify(mapa));
+    } catch {
+        // Ignorar si storage está restringido
+    }
+}
+
+function marcarSeccionComoVista(seccion, ids = []) {
+    if (!seccion) return;
+    const mapa = leerVistos();
+    const previos = new Set(Array.isArray(mapa[seccion]) ? mapa[seccion] : []);
+    (ids || []).forEach((id) => {
+        if (id) previos.add(String(id));
+    });
+    mapa[seccion] = Array.from(previos).slice(-250);
+    guardarVistos(mapa);
+    aplicarBadgeSeccion(seccion, 0);
+}
+
+function contarNoVistos(seccion, idsActuales = []) {
+    const mapa = leerVistos();
+    const vistos = new Set(Array.isArray(mapa[seccion]) ? mapa[seccion] : []);
+    return (idsActuales || []).filter((id) => id && !vistos.has(String(id))).length;
+}
+
+function asegurarBadgesSidebar() {
+    const sidebarMenu = document.querySelector('.sidebar-menu');
+    if (!sidebarMenu) return;
+
+    sidebarMenu.querySelectorAll('li').forEach((li) => {
+        if (li.id === 'menuPagos') return;
+        const txt = li.textContent.trim().toLowerCase();
+        let seccion = '';
+        if (txt.includes('cultivos')) seccion = 'cultivos';
+        else if (txt.includes('marketplace')) seccion = 'marketplace';
+        else if (txt.includes('comunidad')) seccion = 'comunidad';
+
+        if (!seccion) return;
+        li.dataset.seccion = seccion;
+
+        if (!li.querySelector('.sidebar-section-badge')) {
+            const span = document.createElement('span');
+            span.className = 'sidebar-section-badge hidden';
+            span.id = `badgeSidebar-${seccion}`;
+            span.textContent = '0';
+            li.appendChild(span);
+        }
+    });
+}
+
+function aplicarBadgeSeccion(seccion, cantidad) {
+    if (seccion === 'pagos') {
+        const pagosBadge = document.getElementById('pagosBadge');
+        if (!pagosBadge) return;
+        if (cantidad > 0) {
+            pagosBadge.textContent = cantidad;
+            pagosBadge.classList.remove('hidden');
+        } else {
+            pagosBadge.textContent = '0';
+            pagosBadge.classList.add('hidden');
+        }
+        return;
+    }
+
+    if (seccion === 'notif') {
+        const badge = document.getElementById('notifBadge');
+        if (!badge) return;
+        if (cantidad > 0) {
+            badge.textContent = cantidad;
+            badge.classList.remove('hidden');
+        } else {
+            badge.textContent = '0';
+            badge.classList.add('hidden');
+        }
+        return;
+    }
+
+    const badgeSec = document.getElementById(`badgeSidebar-${seccion}`);
+    if (!badgeSec) return;
+    if (cantidad > 0) {
+        badgeSec.textContent = cantidad;
+        badgeSec.classList.remove('hidden');
+    } else {
+        badgeSec.textContent = '0';
+        badgeSec.classList.add('hidden');
+    }
+}
+
 // ============ MENÚ LATERAL, NAVEGACIÓN Y PERFIL ============
 function aplicarPreferenciasAccesibilidad() {
     const escala = localStorage.getItem('agro_font_scale') || '18px';
@@ -245,6 +347,8 @@ function asegurarItemPagosSidebar() {
             }
         });
     }
+
+    asegurarBadgesSidebar();
 }
 
 function inicializarSidebarYPerfil() {
@@ -271,21 +375,17 @@ function inicializarSidebarYPerfil() {
 
     asegurarItemPagosSidebar();
 
-    const rutasMenu = {
-        'inicio': 'dashboard.html',
-        'dashboard': 'dashboard.html',
-        'cultivos': 'cultivos.html',
-        'marketplace': 'marketplace.html',
-        'comunidad': 'comunidad.html',
-        'pagos': 'pagos.html',
-        'ajustes': 'ajustes.html'
-    };
-
     document.querySelectorAll('.sidebar-menu li').forEach((item) => {
         if (item.id === 'menuPagos') return;
         item.addEventListener('click', () => {
-            const clave = item.textContent.trim().toLowerCase();
-            const destino = rutasMenu[clave];
+            const texto = item.textContent.trim().toLowerCase();
+            let destino = '';
+            if (texto.includes('inicio') || texto.includes('dashboard')) destino = 'dashboard.html';
+            else if (texto.includes('cultivos')) destino = 'cultivos.html';
+            else if (texto.includes('marketplace')) destino = 'marketplace.html';
+            else if (texto.includes('comunidad')) destino = 'comunidad.html';
+            else if (texto.includes('ajustes')) destino = 'ajustes.html';
+
             if (destino && !window.location.pathname.endsWith(destino)) {
                 window.location.href = destino;
             }
@@ -341,6 +441,153 @@ function inicializarSidebarYPerfil() {
         }
     }
 
+    // Asegura y adapta los botones rápidos del Perfil según rol (Agricultor vs Comprador)
+    function configurarBotonesAccionPerfil() {
+        if (!modalPerfil) return;
+        const modalBody = modalPerfil.querySelector('.modal-body');
+        if (!modalBody) return;
+
+        let quickActions = modalPerfil.querySelector('#profileQuickActions') || modalPerfil.querySelector('.profile-quick-actions');
+        if (!quickActions) {
+            quickActions = document.createElement('div');
+            quickActions.className = 'profile-quick-actions';
+            quickActions.id = 'profileQuickActions';
+            quickActions.innerHTML = `
+                <button type="button" class="profile-action-btn" id="btnPerfilMensajes">
+                    <i class="bi bi-chat-dots-fill"></i>
+                    <span>Mensajes</span>
+                </button>
+                <button type="button" class="profile-action-btn" id="btnPerfilOfertas">
+                    <i class="bi bi-tag-fill"></i>
+                    <span>Mis ofertas</span>
+                </button>
+                <a href="#" target="_blank" rel="noopener" class="profile-action-btn whatsapp-btn" id="btnPerfilWhatsapp">
+                    <i class="bi bi-whatsapp"></i>
+                    <span>WhatsApp</span>
+                </a>
+            `;
+            const headerBox = modalBody.querySelector('.profile-header-box');
+            if (headerBox) {
+                headerBox.insertAdjacentElement('afterend', quickActions);
+            } else {
+                modalBody.prepend(quickActions);
+            }
+        }
+
+        const btnMensajes = modalPerfil.querySelector('#btnPerfilMensajes');
+        const btnOfertas = modalPerfil.querySelector('#btnPerfilOfertas');
+        const btnWhatsapp = modalPerfil.querySelector('#btnPerfilWhatsapp');
+        const rol = user?.tipo || 'agricultor';
+        const extra = leerExtra();
+        const numeroLimpio = String(extra.whatsapp || '').replace(/\D/g, '');
+
+        const abrirOfertasOChats = (tab) => {
+            modalPerfil.classList.remove('open');
+            const modalNotif = document.getElementById('modalNotificaciones');
+            if (modalNotif) {
+                seleccionarTabNotificaciones(tab);
+                cargarNotificaciones();
+                modalNotif.classList.add('open');
+            } else {
+                window.location.href = `marketplace.html?notif=${encodeURIComponent(tab)}`;
+            }
+        };
+
+        if (rol === 'agricultor') {
+            if (btnMensajes) {
+                btnMensajes.style.display = 'flex';
+                btnMensajes.querySelector('span').textContent = 'Chats ventas';
+                btnMensajes.onclick = () => abrirOfertasOChats('recibidas');
+            }
+            if (btnOfertas) {
+                btnOfertas.style.display = 'flex';
+                btnOfertas.querySelector('span').textContent = 'Ofertas recibidas';
+                btnOfertas.onclick = () => abrirOfertasOChats('recibidas');
+            }
+            if (btnWhatsapp) {
+                btnWhatsapp.style.display = 'flex';
+                btnWhatsapp.querySelector('span').textContent = 'WhatsApp ventas';
+                if (numeroLimpio.length >= 7) {
+                    const textoWa = `Hola, soy ${user?.nombre || 'productor'} de AgroXpress. Te comparto mis cosechas frescas disponibles.`;
+                    btnWhatsapp.href = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(textoWa)}`;
+                    btnWhatsapp.onclick = null;
+                } else {
+                    btnWhatsapp.href = '#';
+                    btnWhatsapp.onclick = (e) => {
+                        e.preventDefault();
+                        aplicarEstadoWhatsapp(false);
+                        inputWhatsapp?.focus();
+                        mostrarAvisoPerfil('✍️ Escribe y guarda tu número de WhatsApp abajo para activar el enlace directo.');
+                    };
+                }
+            }
+        } else if (rol === 'comprador') {
+            if (btnMensajes) {
+                btnMensajes.style.display = 'flex';
+                btnMensajes.querySelector('span').textContent = 'Mis chats';
+                btnMensajes.onclick = () => abrirOfertasOChats('enviadas');
+            }
+            if (btnOfertas) {
+                btnOfertas.style.display = 'flex';
+                btnOfertas.querySelector('span').textContent = 'Mis ofertas';
+                btnOfertas.onclick = () => {
+                    modalPerfil.classList.remove('open');
+                    if (window.location.pathname.endsWith('pagos.html')) {
+                        cambiarTabPaginaPagos('compras');
+                    } else {
+                        abrirOfertasOChats('enviadas');
+                    }
+                };
+            }
+            if (btnWhatsapp) {
+                btnWhatsapp.style.display = 'flex';
+                btnWhatsapp.querySelector('span').textContent = 'WhatsApp';
+                if (numeroLimpio.length >= 7) {
+                    const textoWa = `Hola, soy ${user?.nombre || 'comprador'} en AgroXpress y quiero coordinar la entrega de mi pedido.`;
+                    btnWhatsapp.href = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(textoWa)}`;
+                    btnWhatsapp.onclick = null;
+                } else {
+                    btnWhatsapp.href = '#';
+                    btnWhatsapp.onclick = (e) => {
+                        e.preventDefault();
+                        aplicarEstadoWhatsapp(false);
+                        inputWhatsapp?.focus();
+                        mostrarAvisoPerfil('✍️ Guarda tu número de WhatsApp abajo o revisa el chat interno de tus ofertas aceptadas.');
+                    };
+                }
+            }
+        } else {
+            // Estudiante u otro rol
+            if (btnMensajes) {
+                btnMensajes.style.display = 'flex';
+                btnMensajes.querySelector('span').textContent = 'Foro';
+                btnMensajes.onclick = () => { window.location.href = 'comunidad.html'; };
+            }
+            if (btnOfertas) {
+                btnOfertas.style.display = 'none';
+            }
+            if (btnWhatsapp) {
+                btnWhatsapp.style.display = 'none';
+            }
+        }
+    }
+
+    function mostrarAvisoPerfil(texto) {
+        if (!modalPerfil) return;
+        const modalBody = modalPerfil.querySelector('.modal-body');
+        if (!modalBody) return;
+        let aviso = document.getElementById('perfilAvisoDinamico');
+        if (!aviso) {
+            aviso = document.createElement('div');
+            aviso.id = 'perfilAvisoDinamico';
+            aviso.className = 'form-message success';
+            modalBody.prepend(aviso);
+        }
+        aviso.textContent = texto;
+        aviso.style.display = 'block';
+        setTimeout(() => { if (aviso) aviso.style.display = 'none'; }, 4500);
+    }
+
     if (userInfoBtn && modalPerfil) {
         let confirmBox = document.getElementById('deleteConfirmBox');
 
@@ -363,6 +610,7 @@ function inicializarSidebarYPerfil() {
                 inputWhatsapp.value = extra.whatsapp || '';
             }
             aplicarEstadoWhatsapp(!!extra.whatsapp);
+            configurarBotonesAccionPerfil();
             if (confirmBox) confirmBox.classList.add('hidden');
             modalPerfil.classList.add('open');
         };
@@ -497,6 +745,7 @@ function inicializarSidebarYPerfil() {
             const extra = leerExtra();
             extra.whatsapp = numero;
             guardarExtra(extra);
+            configurarBotonesAccionPerfil();
 
             try {
                 const token = localStorage.getItem('token');
@@ -525,12 +774,15 @@ function inicializarSidebarYPerfil() {
     }
 }
 
-// ============ CAMPANITA DE OFERTAS, PÁGINA DE PAGOS, HISTORIAL Y COMPROBANTE ============
+// ============ CAMPANITA DE OFERTAS, PÁGINA DE PAGOS, CONTRAENTREGA, HISTORIAL Y COMPROBANTE ============
 let ofertasRecibidasCache = [];
 let ofertasEnviadasCache = [];
 let tabNotifActual = 'recibidas';
 let tabPaginaPagos = 'compras';
 let sesionPseSimuladaActual = null;
+const metodosSeleccionadosPago = {};
+const contraFotosMap = {};
+const contraFirmasMap = {};
 
 function escaparTexto(texto) {
     const div = document.createElement('div');
@@ -571,6 +823,12 @@ function badgeEstadoPagoHtml(estadoPago, metodoPago) {
     return `<span class="badge badge-warning">💳 Pago pendiente</span>`;
 }
 
+function badgeEstadoOfertaHtml(estado) {
+    if (estado === 'aceptada') return '<span class="badge badge-success">✅ Aceptada</span>';
+    if (estado === 'rechazada') return '<span class="badge badge-danger">❌ Rechazada</span>';
+    return '<span class="badge badge-warning">⏳ Pendiente</span>';
+}
+
 function mostrarAvisoPagos(texto, tipo = 'success') {
     const pageMsg = document.getElementById('pagosPageMessage');
     if (pageMsg) {
@@ -594,6 +852,47 @@ function mostrarAvisoPagos(texto, tipo = 'success') {
     }
 }
 
+async function actualizarBadgesSidebarGenerales(token) {
+    try {
+        const ruta = window.location.pathname;
+
+        // 1) Cultivos pendientes (si el usuario no está en cultivos.html)
+        if (!ruta.endsWith('cultivos.html')) {
+            const resCult = await fetch(`${API_URL}/cultivos/mis-cultivos`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            }).catch(() => null);
+
+            if (resCult && resCult.ok) {
+                const listaC = await resCult.json();
+                const idsPendientes = (Array.isArray(listaC) ? listaC : [])
+                    .filter((c) => !c.eliminado && c.activo !== false && c.estado !== 'Eliminado')
+                    .filter((c) => c.estado === 'Requiere atención' || (Number(c.cantidadDisponible) <= 0 && c.estado !== 'Vendido'))
+                    .map((c) => String(c._id));
+                aplicarBadgeSeccion('cultivos', contarNoVistos('cultivos', idsPendientes));
+            }
+        } else {
+            aplicarBadgeSeccion('cultivos', 0);
+        }
+
+        // 2) Comunidad nuevas publicaciones (si no está en comunidad.html)
+        if (!ruta.endsWith('comunidad.html')) {
+            const resCom = await fetch(`${API_URL}/comunidad`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            }).catch(() => null);
+
+            if (resCom && resCom.ok) {
+                const posts = await resCom.json();
+                const idsPosts = (Array.isArray(posts) ? posts : []).slice(0, 15).map((p) => String(p._id));
+                aplicarBadgeSeccion('comunidad', contarNoVistos('comunidad', idsPosts));
+            }
+        } else {
+            aplicarBadgeSeccion('comunidad', 0);
+        }
+    } catch {
+        // Silencioso para no interrumpir navegación
+    }
+}
+
 async function cargarNotificaciones() {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -607,27 +906,36 @@ async function cargarNotificaciones() {
         if (resRec.ok) ofertasRecibidasCache = await resRec.json();
         if (resEnv.ok) ofertasEnviadasCache = await resEnv.json();
 
-        const badge = document.getElementById('notifBadge');
-        if (badge) {
-            const pendientes = ofertasRecibidasCache.filter((o) => o.estado === 'pendiente').length;
-            if (pendientes > 0) {
-                badge.textContent = pendientes;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+        const ruta = window.location.pathname;
+        const modalNotifAbierto = document.getElementById('modalNotificaciones')?.classList.contains('open');
+
+        // Campanita: ofertas recibidas pendientes + respuestas nuevas en ofertas enviadas
+        const idsNotifPendientes = [
+            ...ofertasRecibidasCache.filter((o) => o.estado === 'pendiente').map((o) => `rec-${o._id}`),
+            ...ofertasEnviadasCache.filter((o) => o.estado !== 'pendiente').map((o) => `env-${o._id}-${o.estado}`)
+        ];
+        if (modalNotifAbierto) {
+            marcarSeccionComoVista('notif', idsNotifPendientes);
+        } else {
+            aplicarBadgeSeccion('notif', contarNoVistos('notif', idsNotifPendientes));
         }
 
-        const pagosBadge = document.getElementById('pagosBadge');
-        if (pagosBadge) {
-            const porPagar = ofertasEnviadasCache.filter((o) => o.estado === 'aceptada' && o.estadoPago !== 'pagado').length;
-            if (porPagar > 0) {
-                pagosBadge.textContent = porPagar;
-                pagosBadge.classList.remove('hidden');
-            } else {
-                pagosBadge.classList.add('hidden');
-            }
+        // Menú lateral Pagos: compras pendientes por pagar o ventas reportadas por confirmar
+        const idsPagosPendientes = [
+            ...ofertasEnviadasCache
+                .filter((o) => o.estado === 'aceptada' && o.estadoPago !== 'pagado')
+                .map((o) => `compra-${o._id}-${o.estadoPago || 'pendiente'}`),
+            ...ofertasRecibidasCache
+                .filter((o) => o.estado === 'aceptada' && o.estadoPago === 'reportado')
+                .map((o) => `venta-${o._id}-reportado`)
+        ];
+        if (ruta.endsWith('pagos.html')) {
+            marcarSeccionComoVista('pagos', idsPagosPendientes);
+        } else {
+            aplicarBadgeSeccion('pagos', contarNoVistos('pagos', idsPagosPendientes));
         }
+
+        actualizarBadgesSidebarGenerales(token);
 
         renderizarNotificaciones();
         renderizarPaginaPagos();
@@ -637,17 +945,65 @@ async function cargarNotificaciones() {
 }
 
 // ---------- VENTANA DE OFERTAS Y CHAT (CAMPANITA) ----------
+function asegurarTabRechazadasModal() {
+    const tabRec = document.getElementById('tabRecibidas');
+    if (!tabRec || document.getElementById('tabRechazadas')) return;
+    const cont = tabRec.parentElement;
+    if (!cont) return;
+    cont.style.flexWrap = 'wrap';
+    const btnRech = document.createElement('button');
+    btnRech.type = 'button';
+    btnRech.id = 'tabRechazadas';
+    btnRech.className = 'btn-cancel';
+    btnRech.style.flex = '1';
+    btnRech.textContent = '❌ Rechazadas';
+    cont.appendChild(btnRech);
+}
+
+function seleccionarTabNotificaciones(tab) {
+    if (!['recibidas', 'enviadas', 'rechazadas'].includes(tab)) tab = 'recibidas';
+    tabNotifActual = tab;
+
+    const tabRec = document.getElementById('tabRecibidas');
+    const tabEnv = document.getElementById('tabEnviadas');
+    const tabRech = document.getElementById('tabRechazadas');
+
+    if (tabRec) tabRec.className = tab === 'recibidas' ? 'btn-save' : 'btn-cancel';
+    if (tabEnv) tabEnv.className = tab === 'enviadas' ? 'btn-save' : 'btn-cancel';
+    if (tabRech) tabRech.className = tab === 'rechazadas' ? 'btn-save' : 'btn-cancel';
+
+    renderizarNotificaciones();
+}
+
 function renderizarNotificaciones() {
     const lista = document.getElementById('notifLista');
     if (!lista) return;
 
-    const datos = tabNotifActual === 'recibidas' ? ofertasRecibidasCache : ofertasEnviadasCache;
+    let datos = [];
+    if (tabNotifActual === 'recibidas') {
+        datos = ofertasRecibidasCache.map((o) => ({ ...o, _origenNotif: 'recibida' }));
+    } else if (tabNotifActual === 'enviadas') {
+        datos = ofertasEnviadasCache.map((o) => ({ ...o, _origenNotif: 'enviada' }));
+    } else {
+        const recRech = ofertasRecibidasCache
+            .filter((o) => o.estado === 'rechazada')
+            .map((o) => ({ ...o, _origenNotif: 'recibida' }));
+        const envRech = ofertasEnviadasCache
+            .filter((o) => o.estado === 'rechazada')
+            .map((o) => ({ ...o, _origenNotif: 'enviada' }));
+        datos = [...recRech, ...envRech].sort(
+            (a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+        );
+    }
 
     if (datos.length === 0) {
+        const msgVacio = tabNotifActual === 'rechazadas'
+            ? 'No tienes ofertas rechazadas registradas.'
+            : `No tienes ofertas ${tabNotifActual === 'recibidas' ? 'recibidas' : 'enviadas'} todavía.`;
         lista.innerHTML = `
             <div style="text-align:center; padding:30px 10px; color:var(--text-muted);">
                 <i class="bi bi-bell-slash" style="font-size:2rem; display:block; margin-bottom:8px;"></i>
-                No tienes ofertas ${tabNotifActual === 'recibidas' ? 'recibidas' : 'enviadas'} todavía.
+                ${msgVacio}
             </div>`;
         return;
     }
@@ -660,12 +1016,18 @@ function renderizarNotificaciones() {
         const precioUnit = Number(o.precioOfrecido || 0);
         const precioTxt = precioUnit.toLocaleString('es-CO');
         const idSeguro = escaparTexto(o._id);
+        const unidadTxt = escaparTexto(o.unidadMedida === 'kg' ? 'kilo' : (o.unidadMedida || 'kilo'));
+        const esRecibida = o._origenNotif === 'recibida';
 
-        const otraPersona = tabNotifActual === 'recibidas'
+        const otraPersona = esRecibida
             ? `Comprador: <strong>${escaparTexto(o.compradorNombre)}</strong>`
             : `Productor: <strong>${escaparTexto(o.agricultorId?.nombre || 'Agricultor')}</strong>`;
 
-        const botonesPendiente = (tabNotifActual === 'recibidas' && o.estado === 'pendiente') ? `
+        const etiquetaOrigen = tabNotifActual === 'rechazadas'
+            ? `<span class="pagos-role-pill ${esRecibida ? 'venta' : 'compra'}" style="margin-right:6px;">${esRecibida ? '📥 Recibida' : '📤 Enviada'}</span>`
+            : '';
+
+        const botonesPendiente = (esRecibida && o.estado === 'pendiente') ? `
             <div class="notif-card-actions">
                 <button type="button" class="btn-aceptar-oferta" onclick="responderOfertaUI('${idSeguro}', 'aceptada')">
                     <i class="bi bi-check-circle-fill"></i> Aceptar oferta
@@ -675,7 +1037,7 @@ function renderizarNotificaciones() {
                 </button>
             </div>` : '';
 
-        const telefonoOpcional = tabNotifActual === 'recibidas' ? o.compradorTelefono : o.agricultorWhatsapp;
+        const telefonoOpcional = esRecibida ? o.compradorTelefono : o.agricultorWhatsapp;
         const botonWaOpcional = (o.estado === 'aceptada' && telefonoOpcional) ? `
             <a href="https://wa.me/${escaparTexto(telefonoOpcional)}?text=${encodeURIComponent('Hola, coordinemos la entrega de ' + o.nombreProducto + ' en AgroXpress')}"
                 target="_blank" rel="noopener" class="btn-wa-oferta">
@@ -685,7 +1047,7 @@ function renderizarNotificaciones() {
         const accesoPagoRapido = o.estado === 'aceptada' ? `
             <div class="notif-pago-acceso">
                 ${badgeEstadoPagoHtml(o.estadoPago || 'pendiente', o.metodoPago)}
-                <button type="button" class="btn-ir-pagos-mini" onclick="irAPagosDesdeNotif('${tabNotifActual === 'recibidas' ? 'ventas' : 'compras'}')">
+                <button type="button" class="btn-ir-pagos-mini" onclick="irAPagosDesdeNotif('${esRecibida ? 'ventas' : 'compras'}')">
                     💳 Ir a Pagos / Comprobante
                 </button>
             </div>` : '';
@@ -713,11 +1075,11 @@ function renderizarNotificaciones() {
         return `
         <div class="notif-card ${o.estado === 'pendiente' ? 'pendiente' : ''}">
             <div class="notif-card-top">
-                <span class="notif-card-title">🌱 ${escaparTexto(o.nombreProducto)} (${o.cantidadSolicitada} ${escaparTexto(o.unidadMedida || 'kg')})</span>
+                <span class="notif-card-title">${etiquetaOrigen}🌱 ${escaparTexto(o.nombreProducto)} (${o.cantidadSolicitada} ${unidadTxt})</span>
                 <span class="badge ${estadoBadge}">${estadoTexto}</span>
             </div>
             <div class="notif-card-meta">
-                <div>${otraPersona} • Oferta: <strong>$${precioTxt} COP / ${escaparTexto(o.unidadMedida || 'kg')}</strong></div>
+                <div>${otraPersona} • Oferta: <strong>$${precioTxt} COP / ${unidadTxt}</strong></div>
                 ${o.mensaje ? `<div style="margin-top:4px; color:var(--text-muted);">"${escaparTexto(o.mensaje)}"</div>` : ''}
             </div>
             ${botonesPendiente}
@@ -736,17 +1098,19 @@ function irAPagosDesdeNotif(tab) {
     }
 }
 
-// ---------- PÁGINA DEDICADA: PAGOS E HISTORIAL COMPLETO ----------
+// ---------- PÁGINA DEDICADA: PAGOS, CONTRAENTREGA, RECHAZADAS E HISTORIAL ----------
 function cambiarTabPaginaPagos(tab) {
-    if (!['compras', 'ventas', 'historial'].includes(tab)) tab = 'compras';
+    if (!['compras', 'ventas', 'rechazadas', 'historial'].includes(tab)) tab = 'compras';
     tabPaginaPagos = tab;
 
     const btnCompras = document.getElementById('tabPageCompras');
     const btnVentas = document.getElementById('tabPageVentas');
+    const btnRechazadas = document.getElementById('tabPageRechazadas');
     const btnHistorial = document.getElementById('tabPageHistorial');
 
     if (btnCompras) btnCompras.className = tab === 'compras' ? 'btn-save' : 'btn-cancel';
     if (btnVentas) btnVentas.className = tab === 'ventas' ? 'btn-save' : 'btn-cancel';
+    if (btnRechazadas) btnRechazadas.className = tab === 'rechazadas' ? 'btn-save' : 'btn-cancel';
     if (btnHistorial) btnHistorial.className = tab === 'historial' ? 'btn-save' : 'btn-cancel';
 
     renderizarPaginaPagos();
@@ -758,12 +1122,13 @@ function inicializarPaginaPagos() {
 
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['compras', 'ventas', 'historial'].includes(tabParam)) {
+    if (tabParam && ['compras', 'ventas', 'rechazadas', 'historial'].includes(tabParam)) {
         tabPaginaPagos = tabParam;
     }
 
     document.getElementById('tabPageCompras')?.addEventListener('click', () => cambiarTabPaginaPagos('compras'));
     document.getElementById('tabPageVentas')?.addEventListener('click', () => cambiarTabPaginaPagos('ventas'));
+    document.getElementById('tabPageRechazadas')?.addEventListener('click', () => cambiarTabPaginaPagos('rechazadas'));
     document.getElementById('tabPageHistorial')?.addEventListener('click', () => cambiarTabPaginaPagos('historial'));
     document.getElementById('searchPagos')?.addEventListener('input', renderizarPaginaPagos);
     document.getElementById('filterEstadoPagos')?.addEventListener('change', renderizarPaginaPagos);
@@ -798,9 +1163,12 @@ function actualizarResumenPaginaPagos() {
 }
 
 function cumpleFiltroPago(o, textoBusqueda, filtroEstado) {
+    const estadoOferta = o.estado || 'pendiente';
     const estadoPago = o.estadoPago || 'pendiente';
-    if (filtroEstado === 'pendientes' && !['pendiente', 'reportado'].includes(estadoPago)) return false;
-    if (filtroEstado === 'pagado' && estadoPago !== 'pagado') return false;
+
+    if (filtroEstado === 'rechazada' && estadoOferta !== 'rechazada') return false;
+    if (filtroEstado === 'pendientes' && (estadoOferta === 'rechazada' || !['pendiente', 'reportado'].includes(estadoPago))) return false;
+    if (filtroEstado === 'pagado' && (estadoOferta !== 'aceptada' || estadoPago !== 'pagado')) return false;
     if (filtroEstado === 'fallido' && estadoPago !== 'fallido') return false;
 
     if (!textoBusqueda) return true;
@@ -809,10 +1177,207 @@ function cumpleFiltroPago(o, textoBusqueda, filtroEstado) {
         o.compradorNombre,
         o.agricultorId?.nombre,
         o.codigoVerificacion,
-        o.referenciaPago
+        o.referenciaPago,
+        o.estado
     ].filter(Boolean).join(' ').toLowerCase();
 
     return campo.includes(textoBusqueda);
+}
+
+// ---------- SELECTOR DE MÉTODO DE PAGO (VERDE OSCURO) + CONTRAENTREGA ----------
+function abrirSelectorPago(ofertaId) {
+    const box = document.getElementById('pagoMetodosBox-' + ofertaId);
+    if (!box) return;
+    box.classList.toggle('hidden');
+}
+
+function seleccionarMetodoPagoCard(ofertaId, metodo) {
+    metodosSeleccionadosPago[ofertaId] = metodo;
+
+    const btnPse = document.getElementById(`btnMetodo-pse_wompi-${ofertaId}`);
+    const btnContra = document.getElementById(`btnMetodo-contra_entrega-${ofertaId}`);
+    const btnNequi = document.getElementById(`btnMetodo-nequi_breb-${ofertaId}`);
+    const btnCambiar = document.getElementById(`btnCambiarMetodo-${ofertaId}`);
+    const nequiBox = document.getElementById(`nequiBox-${ofertaId}`);
+    const contraBox = document.getElementById(`contraEntregaBox-${ofertaId}`);
+
+    const botones = [
+        { key: 'pse_wompi', el: btnPse },
+        { key: 'contra_entrega', el: btnContra },
+        { key: 'nequi_breb', el: btnNequi }
+    ];
+
+    botones.forEach(({ key, el }) => {
+        if (!el) return;
+        if (!metodo) {
+            el.disabled = false;
+            el.classList.remove('btn-pago-seleccionado', 'btn-pago-deshabilitado');
+        } else if (key === metodo) {
+            el.disabled = false;
+            el.classList.add('btn-pago-seleccionado');
+            el.classList.remove('btn-pago-deshabilitado');
+        } else {
+            el.disabled = true;
+            el.classList.remove('btn-pago-seleccionado');
+            el.classList.add('btn-pago-deshabilitado');
+        }
+    });
+
+    if (btnCambiar) btnCambiar.classList.toggle('hidden', !metodo);
+    if (nequiBox) nequiBox.classList.toggle('hidden', metodo !== 'nequi_breb');
+    if (contraBox) contraBox.classList.toggle('hidden', metodo !== 'contra_entrega');
+
+    if (metodo === 'pse_wompi') {
+        pagarPorPSE(ofertaId);
+    } else if (metodo === 'nequi_breb') {
+        document.getElementById(`nequiRef-${ofertaId}`)?.focus();
+    } else if (metodo === 'contra_entrega') {
+        inicializarPadFirmaContraentrega(ofertaId);
+    }
+}
+
+function reiniciarMetodoPagoCard(ofertaId) {
+    seleccionarMetodoPagoCard(ofertaId, '');
+}
+
+function manejarFotoContraentrega(ofertaId, inputEl) {
+    const archivo = inputEl?.files?.[0];
+    const preview = document.getElementById(`contraFotoPreview-${ofertaId}`);
+    if (!archivo) {
+        delete contraFotosMap[ofertaId];
+        if (preview) {
+            preview.src = '';
+            preview.classList.add('hidden');
+        }
+        return;
+    }
+
+    const lector = new FileReader();
+    lector.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+            const maxDim = 800;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                    h = Math.round((h * maxDim) / w);
+                    w = maxDim;
+                } else {
+                    w = Math.round((w * maxDim) / h);
+                    h = maxDim;
+                }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+            contraFotosMap[ofertaId] = dataUrl;
+            if (preview) {
+                preview.src = dataUrl;
+                preview.classList.remove('hidden');
+            }
+        };
+        img.src = ev.target.result;
+    };
+    lector.readAsDataURL(archivo);
+}
+
+function inicializarPadFirmaContraentrega(ofertaId) {
+    const canvas = document.getElementById(`contraFirmaCanvas-${ofertaId}`);
+    if (!canvas) return;
+    if (canvas.dataset.padReady === '1') return;
+
+    canvas.dataset.padReady = '1';
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#124734';
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    contraFirmasMap[ofertaId] = { canvas, ctx, tieneTrazos: false, dibujando: false };
+
+    const obtenerPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: ((clientX - rect.left) / rect.width) * canvas.width,
+            y: ((clientY - rect.top) / rect.height) * canvas.height
+        };
+    };
+
+    const iniciar = (e) => {
+        e.preventDefault();
+        const estado = contraFirmasMap[ofertaId];
+        estado.dibujando = true;
+        const pos = obtenerPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+    };
+
+    const mover = (e) => {
+        const estado = contraFirmasMap[ofertaId];
+        if (!estado || !estado.dibujando) return;
+        e.preventDefault();
+        const pos = obtenerPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        estado.tieneTrazos = true;
+    };
+
+    const terminar = () => {
+        const estado = contraFirmasMap[ofertaId];
+        if (estado) estado.dibujando = false;
+    };
+
+    canvas.addEventListener('mousedown', iniciar);
+    canvas.addEventListener('mousemove', mover);
+    window.addEventListener('mouseup', terminar);
+
+    canvas.addEventListener('touchstart', iniciar, { passive: false });
+    canvas.addEventListener('touchmove', mover, { passive: false });
+    canvas.addEventListener('touchend', terminar);
+}
+
+function limpiarFirmaContraentrega(ofertaId) {
+    const estado = contraFirmasMap[ofertaId];
+    if (!estado) return;
+    const { canvas, ctx } = estado;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    estado.tieneTrazos = false;
+}
+
+async function enviarContraentregaValidado(ofertaId) {
+    const fotoEntrega = contraFotosMap[ofertaId] || '';
+    const estadoFirma = contraFirmasMap[ofertaId];
+    const refInput = document.getElementById(`contraRef-${ofertaId}`);
+    const referenciaPago = refInput ? refInput.value.trim() : '';
+
+    if (!fotoEntrega) {
+        mostrarAvisoPagos('📸 Debes subir la foto de entrega para validar la transacción contraentrega.', 'error');
+        document.getElementById(`contraFoto-${ofertaId}`)?.focus();
+        return;
+    }
+
+    if (!estadoFirma || !estadoFirma.tieneTrazos) {
+        mostrarAvisoPagos('✍️ Debes dibujar la firma de recibido del cliente antes de continuar.', 'error');
+        return;
+    }
+
+    if (!referenciaPago) {
+        mostrarAvisoPagos('🧾 Debes ingresar la referencia del pago contraentrega.', 'error');
+        refInput?.focus();
+        return;
+    }
+
+    const firmaCliente = estadoFirma.canvas.toDataURL('image/png');
+    await registrarAcuerdoPago(ofertaId, 'contra_entrega', referenciaPago, { fotoEntrega, firmaCliente });
 }
 
 function renderizarPaginaPagos() {
@@ -824,15 +1389,10 @@ function renderizarPaginaPagos() {
     const textoBusqueda = (document.getElementById('searchPagos')?.value || '').trim().toLowerCase();
     const filtroEstado = document.getElementById('filterEstadoPagos')?.value || '';
 
-    // Pestaña HISTORIAL COMPLETO: une compras y ventas ordenadas por fecha más reciente
+    // Pestaña HISTORIAL COMPLETO: consolida TODAS las ofertas (aceptadas, rechazadas, pendientes, pagadas)
     if (tabPaginaPagos === 'historial') {
-        const compras = ofertasEnviadasCache
-            .filter((o) => o.estado === 'aceptada')
-            .map((o) => ({ ...o, rolHistorial: 'compra' }));
-
-        const ventas = ofertasRecibidasCache
-            .filter((o) => o.estado === 'aceptada')
-            .map((o) => ({ ...o, rolHistorial: 'venta' }));
+        const compras = ofertasEnviadasCache.map((o) => ({ ...o, rolHistorial: 'compra' }));
+        const ventas = ofertasRecibidasCache.map((o) => ({ ...o, rolHistorial: 'venta' }));
 
         const historial = [...compras, ...ventas]
             .filter((o) => cumpleFiltroPago(o, textoBusqueda, filtroEstado))
@@ -872,6 +1432,15 @@ function renderizarPaginaPagos() {
                                 ? (o.agricultorId?.nombre || 'Productor')
                                 : (o.compradorNombre || 'Comprador');
                             const idSeguro = escaparTexto(o._id);
+                            const unidadTxt = escaparTexto(o.unidadMedida === 'kg' ? 'kilo' : (o.unidadMedida || 'kilo'));
+
+                            const estadoColumna = o.estado === 'aceptada'
+                                ? badgeEstadoPagoHtml(o.estadoPago || 'pendiente', o.metodoPago)
+                                : badgeEstadoOfertaHtml(o.estado);
+
+                            const accionColumna = o.estado === 'aceptada'
+                                ? `<button type="button" class="btn-ver-comprobante" onclick="abrirComprobanteVenta('${idSeguro}')">🧾 Ver PDF</button>`
+                                : `<span style="font-size:0.8rem; color:var(--text-muted);">${o.estado === 'rechazada' ? 'No concretada' : 'En revisión'}</span>`;
 
                             return `
                                 <tr>
@@ -884,22 +1453,18 @@ function renderizarPaginaPagos() {
                                     <td>
                                         <strong>${escaparTexto(o.nombreProducto)}</strong>
                                         <div style="font-size:0.8rem; color:var(--text-muted);">
-                                            ${o.cantidadSolicitada} ${escaparTexto(o.unidadMedida || 'kg')}
+                                            ${o.cantidadSolicitada} ${unidadTxt}
                                             ${o.codigoVerificacion ? `• ${escaparTexto(o.codigoVerificacion)}` : ''}
                                         </div>
                                     </td>
                                     <td>${escaparTexto(contraparte)}</td>
                                     <td>
-                                        <div>${escaparTexto(textoMetodoPago(o.metodoPago))}</div>
+                                        <div>${o.estado === 'aceptada' ? escaparTexto(textoMetodoPago(o.metodoPago)) : '—'}</div>
                                         ${o.referenciaPago ? `<small style="color:var(--text-muted);">${escaparTexto(o.referenciaPago)}</small>` : ''}
                                     </td>
                                     <td><strong>$${total.toLocaleString('es-CO')} COP</strong></td>
-                                    <td>${badgeEstadoPagoHtml(o.estadoPago || 'pendiente', o.metodoPago)}</td>
-                                    <td>
-                                        <button type="button" class="btn-ver-comprobante" onclick="abrirComprobanteVenta('${idSeguro}')">
-                                            🧾 Ver PDF
-                                        </button>
-                                    </td>
+                                    <td>${estadoColumna}</td>
+                                    <td>${accionColumna}</td>
                                 </tr>
                             `;
                         }).join('')}
@@ -907,6 +1472,65 @@ function renderizarPaginaPagos() {
                 </table>
             </div>
         `;
+        return;
+    }
+
+    // Pestaña OFERTAS RECHAZADAS
+    if (tabPaginaPagos === 'rechazadas') {
+        const comprasRech = ofertasEnviadasCache
+            .filter((o) => o.estado === 'rechazada')
+            .map((o) => ({ ...o, rolHistorial: 'compra' }));
+        const ventasRech = ofertasRecibidasCache
+            .filter((o) => o.estado === 'rechazada')
+            .map((o) => ({ ...o, rolHistorial: 'venta' }));
+
+        const rechazadas = [...comprasRech, ...ventasRech]
+            .filter((o) => cumpleFiltroPago(o, textoBusqueda, filtroEstado))
+            .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+
+        if (rechazadas.length === 0) {
+            lista.innerHTML = `
+                <div class="marketplace-empty">
+                    <i class="bi bi-x-octagon" style="font-size:2.2rem; display:block; margin-bottom:10px;"></i>
+                    No tienes ofertas rechazadas en este momento.
+                </div>`;
+            return;
+        }
+
+        lista.innerHTML = rechazadas.map((o) => {
+            const precioUnit = Number(o.precioOfrecido || 0);
+            const total = precioUnit * Number(o.cantidadSolicitada || 0);
+            const unidadTxt = escaparTexto(o.unidadMedida === 'kg' ? 'kilo' : (o.unidadMedida || 'kilo'));
+            const fechaTxt = new Date(o.updatedAt || o.createdAt).toLocaleString('es-CO', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const contraparte = o.rolHistorial === 'compra'
+                ? `Productor: <strong>${escaparTexto(o.agricultorId?.nombre || 'Agricultor')}</strong>`
+                : `Comprador: <strong>${escaparTexto(o.compradorNombre || 'Comprador')}</strong>`;
+
+            return `
+                <article class="pago-card rechazada">
+                    <div class="oferta-pago-top">
+                        <div>
+                            <div class="pago-card-title">
+                                <span class="pagos-role-pill ${o.rolHistorial}" style="margin-right:6px;">
+                                    ${o.rolHistorial === 'compra' ? '🛒 Oferta enviada' : '🌾 Oferta recibida'}
+                                </span>
+                                🌱 ${escaparTexto(o.nombreProducto)} (${o.cantidadSolicitada} ${unidadTxt})
+                            </div>
+                            <div class="pago-card-sub">${contraparte} • $${precioUnit.toLocaleString('es-CO')} COP / ${unidadTxt} • ${escaparTexto(fechaTxt)}</div>
+                        </div>
+                        <div>
+                            <span class="badge badge-danger">❌ Rechazada</span>
+                        </div>
+                    </div>
+                    <div class="pago-card-resumen">
+                        <div class="oferta-pago-total">Valor ofertado: <strong>$${total.toLocaleString('es-CO')} COP</strong></div>
+                    </div>
+                    ${o.mensaje ? `<div class="oferta-pago-ref">Mensaje: "${escaparTexto(o.mensaje)}"</div>` : ''}
+                </article>
+            `;
+        }).join('');
         return;
     }
 
@@ -941,6 +1565,7 @@ function renderizarPaginaPagos() {
         const idSeguro = escaparTexto(o._id);
         const estadoPago = o.estadoPago || 'pendiente';
         const yaPagado = estadoPago === 'pagado';
+        const unidadTxt = escaparTexto(o.unidadMedida === 'kg' ? 'kilo' : (o.unidadMedida || 'kilo'));
 
         const fechaTxt = new Date(o.fechaPago || o.updatedAt || o.createdAt).toLocaleString('es-CO', {
             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -950,21 +1575,101 @@ function renderizarPaginaPagos() {
             ? `Productor: <strong>${escaparTexto(o.agricultorId?.nombre || 'Agricultor')}</strong>`
             : `Comprador: <strong>${escaparTexto(o.compradorNombre || 'Comprador')}</strong>`;
 
+        const metodoActivo = metodosSeleccionadosPago[o._id] || '';
+        const mostrarSelector = Boolean(metodoActivo);
+
+        const evidenciasContraentrega = (o.fotoEntrega || o.firmaCliente) ? `
+            <div class="contraentrega-evidencias-grid">
+                ${o.fotoEntrega ? `
+                    <div class="contraentrega-evidencia-card">
+                        <small>📸 Foto de entrega</small>
+                        <img src="${escaparTexto(o.fotoEntrega)}" alt="Foto de entrega">
+                    </div>` : ''}
+                ${o.firmaCliente ? `
+                    <div class="contraentrega-evidencia-card">
+                        <small>✍️ Firma de recibido</small>
+                        <img src="${escaparTexto(o.firmaCliente)}" alt="Firma de recibido">
+                    </div>` : ''}
+            </div>` : '';
+
         const accionesComprador = (tabPaginaPagos === 'compras' && !yaPagado) ? `
-            <div class="pago-actions-row">
-                <button type="button" class="btn-pago-pse" onclick="pagarPorPSE('${idSeguro}')">
-                    🏦 Pagar por PSE (Sandbox)
+            <div class="pago-selector-wrap">
+                <button type="button" class="btn-realizar-pago" onclick="abrirSelectorPago('${idSeguro}')">
+                    💳 Realizar pago
                 </button>
-                <button type="button" class="btn-pago-alt" onclick="registrarAcuerdoPago('${idSeguro}', 'contra_entrega')">
-                    💵 Contra entrega
-                </button>
-                <button type="button" class="btn-pago-alt" onclick="toggleNequiBox('${idSeguro}')">
-                    📱 Nequi / Bre-B
-                </button>
-            </div>
-            <div class="pago-nequi-box hidden" id="nequiBox-${idSeguro}">
-                <input type="text" id="nequiRef-${idSeguro}" maxlength="60" placeholder="Número de comprobante Nequi/Bre-B (opcional)">
-                <button type="button" class="btn-pago-confirm" onclick="enviarNequiAcuerdo('${idSeguro}')">Reportar</button>
+                <div class="pago-metodos-box ${mostrarSelector ? '' : 'hidden'}" id="pagoMetodosBox-${idSeguro}">
+                    <div class="pago-actions-row">
+                        <button type="button"
+                            id="btnMetodo-pse_wompi-${idSeguro}"
+                            class="btn-pago-pse ${metodoActivo === 'pse_wompi' ? 'btn-pago-seleccionado' : (metodoActivo ? 'btn-pago-deshabilitado' : '')}"
+                            ${metodoActivo && metodoActivo !== 'pse_wompi' ? 'disabled' : ''}
+                            onclick="seleccionarMetodoPagoCard('${idSeguro}', 'pse_wompi')">
+                            🏦 PSE (Sandbox)
+                        </button>
+                        <button type="button"
+                            id="btnMetodo-contra_entrega-${idSeguro}"
+                            class="btn-pago-alt ${metodoActivo === 'contra_entrega' ? 'btn-pago-seleccionado' : (metodoActivo ? 'btn-pago-deshabilitado' : '')}"
+                            ${metodoActivo && metodoActivo !== 'contra_entrega' ? 'disabled' : ''}
+                            onclick="seleccionarMetodoPagoCard('${idSeguro}', 'contra_entrega')">
+                            💵 Contra entrega
+                        </button>
+                        <button type="button"
+                            id="btnMetodo-nequi_breb-${idSeguro}"
+                            class="btn-pago-alt ${metodoActivo === 'nequi_breb' ? 'btn-pago-seleccionado' : (metodoActivo ? 'btn-pago-deshabilitado' : '')}"
+                            ${metodoActivo && metodoActivo !== 'nequi_breb' ? 'disabled' : ''}
+                            onclick="seleccionarMetodoPagoCard('${idSeguro}', 'nequi_breb')">
+                            📱 Nequi / Bre-B
+                        </button>
+                    </div>
+                    <button type="button"
+                        id="btnCambiarMetodo-${idSeguro}"
+                        class="btn-cambiar-metodo-pago ${metodoActivo ? '' : 'hidden'}"
+                        onclick="reiniciarMetodoPagoCard('${idSeguro}')">
+                        🔄 Elegir otro método
+                    </button>
+
+                    <!-- CAJA NEQUI / BRE-B -->
+                    <div class="pago-nequi-box ${metodoActivo === 'nequi_breb' ? '' : 'hidden'}" id="nequiBox-${idSeguro}">
+                        <input type="text" id="nequiRef-${idSeguro}" maxlength="60" placeholder="Número de comprobante Nequi/Bre-B (opcional)">
+                        <button type="button" class="btn-pago-confirm" onclick="enviarNequiAcuerdo('${idSeguro}')">Reportar</button>
+                    </div>
+
+                    <!-- CAJA OBLIGATORIA CONTRAENTREGA -->
+                    <div class="contraentrega-box ${metodoActivo === 'contra_entrega' ? '' : 'hidden'}" id="contraEntregaBox-${idSeguro}">
+                        <div class="pago-politicas-alert" role="alert">
+                            <strong><i class="bi bi-exclamation-triangle-fill"></i> Políticas de envío y rechazo Contraentrega</strong>
+                            <ul>
+                                <li>En caso de rechazar el pedido por motivos ajenos después de 2 días, se cobrará un valor adicional.</li>
+                                <li>Para cancelar el envío sin penalidad debe hacerse con mínimo 3 días hábiles de anticipación; de lo contrario, se cobrará una multa.</li>
+                            </ul>
+                        </div>
+
+                        <div class="contraentrega-field">
+                            <label for="contraFoto-${idSeguro}">📸 Foto de entrega <span class="required">*</span></label>
+                            <input type="file" id="contraFoto-${idSeguro}" accept="image/*" onchange="manejarFotoContraentrega('${idSeguro}', this)">
+                            <img id="contraFotoPreview-${idSeguro}" class="contraentrega-preview-img hidden" alt="Vista previa foto de entrega">
+                        </div>
+
+                        <div class="contraentrega-field">
+                            <div class="signature-pad-header">
+                                <label>✍️ Firma de recibido del cliente <span class="required">*</span></label>
+                                <button type="button" class="btn-limpiar-firma" onclick="limpiarFirmaContraentrega('${idSeguro}')">Limpiar firma</button>
+                            </div>
+                            <div class="signature-pad-wrap">
+                                <canvas id="contraFirmaCanvas-${idSeguro}" class="signature-pad-canvas" width="440" height="140"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="contraentrega-field">
+                            <label for="contraRef-${idSeguro}">🧾 Referencia del pago <span class="required">*</span></label>
+                            <input type="text" id="contraRef-${idSeguro}" maxlength="60" placeholder="Ej: Efectivo al recibir / Guía #1024">
+                        </div>
+
+                        <button type="button" class="btn-pago-confirm" onclick="enviarContraentregaValidado('${idSeguro}')">
+                            ✅ Confirmar y registrar Contraentrega
+                        </button>
+                    </div>
+                </div>
             </div>` : '';
 
         const accionesVendedor = (tabPaginaPagos === 'ventas' && !yaPagado) ? `
@@ -978,8 +1683,8 @@ function renderizarPaginaPagos() {
             <article class="pago-card ${yaPagado ? 'pagado' : ''}">
                 <div class="oferta-pago-top">
                     <div>
-                        <div class="pago-card-title">🌱 ${escaparTexto(o.nombreProducto)} (${o.cantidadSolicitada} ${escaparTexto(o.unidadMedida || 'kg')})</div>
-                        <div class="pago-card-sub">${contraparte} • $${precioTxt} COP / ${escaparTexto(o.unidadMedida || 'kg')} • ${escaparTexto(fechaTxt)}</div>
+                        <div class="pago-card-title">🌱 ${escaparTexto(o.nombreProducto)} (${o.cantidadSolicitada} ${unidadTxt})</div>
+                        <div class="pago-card-sub">${contraparte} • $${precioTxt} COP / ${unidadTxt} • ${escaparTexto(fechaTxt)}</div>
                     </div>
                     <div>
                         ${badgeEstadoPagoHtml(estadoPago, o.metodoPago)}
@@ -993,6 +1698,7 @@ function renderizarPaginaPagos() {
 
                 ${o.referenciaPago ? `<div class="oferta-pago-ref">Referencia: <strong>${escaparTexto(o.referenciaPago)}</strong></div>` : ''}
 
+                ${evidenciasContraentrega}
                 ${accionesComprador}
                 ${accionesVendedor}
 
@@ -1004,6 +1710,13 @@ function renderizarPaginaPagos() {
             </article>
         `;
     }).join('');
+
+    // Re-inicializa pads visibles si contraentrega quedó seleccionado tras un render
+    Object.keys(metodosSeleccionadosPago).forEach((id) => {
+        if (metodosSeleccionadosPago[id] === 'contra_entrega') {
+            inicializarPadFirmaContraentrega(id);
+        }
+    });
 }
 
 async function responderOfertaUI(ofertaId, estado) {
@@ -1065,19 +1778,28 @@ async function enviarNequiAcuerdo(ofertaId) {
     await registrarAcuerdoPago(ofertaId, 'nequi_breb', ref);
 }
 
-async function registrarAcuerdoPago(ofertaId, metodoPago, referenciaPago = '') {
+async function registrarAcuerdoPago(ofertaId, metodoPago, referenciaPago = '', extras = {}) {
     const token = localStorage.getItem('token');
     try {
+        const bodyPayload = {
+            metodoPago,
+            referenciaPago,
+            ...extras
+        };
         const res = await fetch(`${API_URL}/ofertas/${ofertaId}/pago-acuerdo`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify({ metodoPago, referenciaPago })
+            body: JSON.stringify(bodyPayload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.mensaje || 'No se pudo registrar el método de pago');
+
+        delete metodosSeleccionadosPago[ofertaId];
+        delete contraFotosMap[ofertaId];
+        delete contraFirmasMap[ofertaId];
 
         mostrarAvisoPagos('✅ ' + (data.mensaje || 'Método de pago guardado'), 'success');
         await cargarNotificaciones();
@@ -1364,6 +2086,19 @@ async function abrirComprobanteVenta(ofertaId) {
 
         const ubicTxt = formatearUbicacion(c.agricultor?.ubicacion);
         const fincaTxt = [c.agricultor?.finca, ubicTxt].filter(Boolean).join(' • ');
+        const evidenciasHtml = (c.fotoEntrega || c.firmaCliente) ? `
+            <div class="contraentrega-evidencias-grid" style="margin-top:12px;">
+                ${c.fotoEntrega ? `
+                    <div class="contraentrega-evidencia-card">
+                        <small>📸 Foto de entrega</small>
+                        <img src="${escaparTexto(c.fotoEntrega)}" alt="Foto de entrega">
+                    </div>` : ''}
+                ${c.firmaCliente ? `
+                    <div class="contraentrega-evidencia-card">
+                        <small>✍️ Firma de recibido</small>
+                        <img src="${escaparTexto(c.firmaCliente)}" alt="Firma de recibido">
+                    </div>` : ''}
+            </div>` : '';
 
         cuerpo.innerHTML = `
             <div class="comprobante-paper">
@@ -1409,7 +2144,7 @@ async function abrirComprobanteVenta(ofertaId) {
                     <tbody>
                         <tr>
                             <td><strong>${escaparTexto(c.nombreProducto)}</strong></td>
-                            <td>${c.cantidad} ${escaparTexto(c.unidadMedida || 'kg')}</td>
+                            <td>${c.cantidad} ${escaparTexto(c.unidadMedida === 'kg' ? 'kilo' : (c.unidadMedida || 'kilo'))}</td>
                             <td>$${Number(c.precioUnitario || 0).toLocaleString('es-CO')} COP</td>
                             <td><strong>$${Number(c.totalVenta || 0).toLocaleString('es-CO')} COP</strong></td>
                         </tr>
@@ -1423,6 +2158,8 @@ async function abrirComprobanteVenta(ofertaId) {
                     ${c.wompiTransactionId ? `<div><span>ID Transacción PSE:</span> <strong>${escaparTexto(c.wompiTransactionId)}</strong></div>` : ''}
                     <div><span>Fecha de pago:</span> <strong>${escaparTexto(fechaPagoTxt)}</strong></div>
                 </div>
+
+                ${evidenciasHtml}
 
                 <div class="comprobante-sha-box">
                     <small>Huella digital SHA-256 (Registro Inalterable):</small>
@@ -1442,6 +2179,7 @@ async function abrirComprobanteVenta(ofertaId) {
 
 function inicializarNotificaciones() {
     asegurarItemPagosSidebar();
+    asegurarTabRechazadasModal();
 
     const btnNotif = document.getElementById('btnNotificaciones');
     const modalNotif = document.getElementById('modalNotificaciones');
@@ -1449,11 +2187,12 @@ function inicializarNotificaciones() {
     const btnCerrarNotif = document.getElementById('btnCerrarNotif');
     const tabRec = document.getElementById('tabRecibidas');
     const tabEnv = document.getElementById('tabEnviadas');
+    const tabRech = document.getElementById('tabRechazadas');
 
     if (btnNotif && modalNotif) {
         const abrirNotif = () => {
-            cargarNotificaciones();
             modalNotif.classList.add('open');
+            cargarNotificaciones();
         };
         const cerrarNotif = () => modalNotif.classList.remove('open');
 
@@ -1464,23 +2203,21 @@ function inicializarNotificaciones() {
             if (e.target === modalNotif) cerrarNotif();
         });
 
-        if (tabRec && tabEnv) {
-            tabRec.addEventListener('click', () => {
-                tabNotifActual = 'recibidas';
-                tabRec.className = 'btn-save';
-                tabEnv.className = 'btn-cancel';
-                renderizarNotificaciones();
-            });
-            tabEnv.addEventListener('click', () => {
-                tabNotifActual = 'enviadas';
-                tabEnv.className = 'btn-save';
-                tabRec.className = 'btn-cancel';
-                renderizarNotificaciones();
-            });
+        if (tabRec) tabRec.addEventListener('click', () => seleccionarTabNotificaciones('recibidas'));
+        if (tabEnv) tabEnv.addEventListener('click', () => seleccionarTabNotificaciones('enviadas'));
+        if (tabRech) tabRech.addEventListener('click', () => seleccionarTabNotificaciones('rechazadas'));
+
+        const params = new URLSearchParams(window.location.search);
+        const notifParam = params.get('notif');
+        if (notifParam && ['recibidas', 'enviadas', 'rechazadas'].includes(notifParam)) {
+            seleccionarTabNotificaciones(notifParam);
+            modalNotif.classList.add('open');
+            params.delete('notif');
+            const nuevaUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', nuevaUrl);
         }
     }
 
     cargarNotificaciones();
     verificarRetornoWompi();
 }
-

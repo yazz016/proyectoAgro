@@ -108,7 +108,7 @@
             <form id="formPublicacion">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>¿De qué trata? <span class="required">*</span></label>
+                        <label for="pubCategoria">¿De qué trata? <span class="required">*</span></label>
                         <select id="pubCategoria" required>
                             <option value="Consejo">🌱 Consejo de cultivo</option>
                             <option value="Clima y Plagas">🌦️ Alerta de clima o plagas</option>
@@ -116,11 +116,11 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Título corto <span class="required">*</span></label>
+                        <label for="pubTitulo" id="pubTituloLabel">Título corto <span class="required">*</span></label>
                         <input type="text" id="pubTitulo" placeholder="Ej: ¿Cómo proteger el tomate de la lluvia?" required>
                     </div>
-                    <div class="form-group">
-                        <label>Tu mensaje <span class="required">*</span></label>
+                    <div class="form-group" id="pubContenidoGroup">
+                        <label for="pubContenido">Tu mensaje <span class="required">*</span></label>
                         <textarea id="pubContenido" rows="4" placeholder="Escribe aquí tu consejo, aviso o duda con palabras sencillas..." required></textarea>
                     </div>
                 </div>
@@ -140,9 +140,10 @@
                 <button class="close-modal" id="closeNotifModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="modal-body">
-                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <div class="notif-tabs-row" style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
                     <button type="button" class="btn-save" id="tabRecibidas" style="flex:1;">Ofertas recibidas</button>
                     <button type="button" class="btn-cancel" id="tabEnviadas" style="flex:1;">Mis ofertas enviadas</button>
+                    <button type="button" class="btn-cancel" id="tabRechazadas" style="flex:1;">❌ Rechazadas</button>
                 </div>
                 <div id="notifLista" class="notif-list">
                     <p class="text-muted text-center">Cargando ofertas...</p>
@@ -175,6 +176,23 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Accesos rápidos adaptados por rol -->
+                <div class="profile-quick-actions" id="profileQuickActions">
+                    <button type="button" class="profile-action-btn" id="btnPerfilMensajes">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        <span>Mensajes</span>
+                    </button>
+                    <button type="button" class="profile-action-btn" id="btnPerfilOfertas">
+                        <i class="bi bi-tag-fill"></i>
+                        <span>Mis ofertas</span>
+                    </button>
+                    <a href="#" target="_blank" rel="noopener" class="profile-action-btn whatsapp-btn" id="btnPerfilWhatsapp">
+                        <i class="bi bi-whatsapp"></i>
+                        <span>WhatsApp</span>
+                    </a>
+                </div>
+
                 <div class="profile-details-list">
                     <div class="profile-detail-item">
                         <span class="detail-label"><i class="bi bi-envelope-fill"></i> Correo electrónico</span>
@@ -184,7 +202,7 @@
                         <span class="detail-label"><i class="bi bi-person-badge-fill"></i> Tipo de cuenta</span>
                         <span class="detail-value" id="perfilTipo">-</span>
                     </div>
-                    <div class="profile-detail-item">
+                    <div class="profile-detail-item" id="perfilWhatsappItem">
                         <span class="detail-label"><i class="bi bi-whatsapp" style="color:#16A34A;"></i> WhatsApp de ventas / Business (opcional)</span>
                         <div class="whatsapp-input-row">
                             <input type="tel" id="inputWhatsapp" placeholder="Ej: 573001234567">
@@ -229,6 +247,30 @@
         const pubModalTitle = document.getElementById('pubModalTitle');
         const btnSubmitPub = document.getElementById('btnSubmitPub');
 
+        const pubCategoria = document.getElementById('pubCategoria');
+        const pubTitulo = document.getElementById('pubTitulo');
+        const pubTituloLabel = document.getElementById('pubTituloLabel');
+        const pubContenido = document.getElementById('pubContenido');
+        const pubContenidoGroup = document.getElementById('pubContenidoGroup');
+
+        function actualizarFormularioSegunCategoria() {
+            const esPregunta = pubCategoria.value === 'Pregunta';
+            if (esPregunta) {
+                pubTituloLabel.innerHTML = 'Escribe tu pregunta <span class="required">*</span>';
+                pubTitulo.placeholder = 'Ej: ¿Cómo proteger el tomate de la lluvia o qué precio tiene este cultivo?';
+                pubContenidoGroup.classList.add('hidden');
+                pubContenido.required = false;
+                pubContenido.value = '';
+            } else {
+                pubTituloLabel.innerHTML = 'Título corto <span class="required">*</span>';
+                pubTitulo.placeholder = 'Ej: Cómo abonar el cultivo en época de lluvias';
+                pubContenidoGroup.classList.remove('hidden');
+                pubContenido.required = true;
+            }
+        }
+
+        pubCategoria.addEventListener('change', actualizarFormularioSegunCategoria);
+
         function mostrarAvisoComunidad(texto, tipo) {
             mostrarMensaje(msgBox, texto, tipo);
             setTimeout(() => {
@@ -249,6 +291,10 @@
                 if (!res.ok) throw new Error('Error cargando comunidad');
                 publicaciones = await res.json();
                 renderizarPublicaciones();
+
+                if (typeof marcarSeccionComoVista === 'function') {
+                    marcarSeccionComoVista('comunidad', (publicaciones || []).map((p) => String(p._id)));
+                }
             } catch (error) {
                 feed.innerHTML = `<div class="marketplace-empty">No pudimos cargar la comunidad. Verifica que el servidor esté encendido.</div>`;
             }
@@ -288,6 +334,10 @@
                         : `<span class="badge badge-pregunta-pendiente">⏳ Esperando ayuda</span>`)
                     : '';
 
+                const cuerpoHtml = (p.contenido && p.contenido.trim())
+                    ? `<p class="post-body">${escaparTexto(p.contenido)}</p>`
+                    : '';
+
                 return `
                 <article class="post-card">
                     <div class="post-header">
@@ -305,7 +355,7 @@
                     </div>
 
                     <h3 class="post-title">${escaparTexto(p.titulo)}</h3>
-                    <p class="post-body">${escaparTexto(p.contenido)}</p>
+                    ${cuerpoHtml}
 
                     <div class="post-actions-row">
                         <button type="button" class="btn-like-post ${yaDioLike ? 'liked' : ''}" onclick="darLike('${p._id}')">
@@ -346,6 +396,7 @@
             formPub.reset();
             pubModalTitle.innerHTML = '<i class="bi bi-megaphone-fill"></i> Nueva publicación';
             btnSubmitPub.textContent = 'Publicar';
+            actualizarFormularioSegunCategoria();
             modalPub.classList.add('open');
         }
 
@@ -353,9 +404,10 @@
             const pub = publicaciones.find((p) => p._id === id);
             if (!pub) return;
             editandoId = pub._id;
-            document.getElementById('pubCategoria').value = pub.categoria || 'Consejo';
-            document.getElementById('pubTitulo').value = pub.titulo || '';
-            document.getElementById('pubContenido').value = pub.contenido || '';
+            pubCategoria.value = pub.categoria || 'Consejo';
+            pubTitulo.value = pub.titulo || '';
+            pubContenido.value = pub.contenido || '';
+            actualizarFormularioSegunCategoria();
             pubModalTitle.innerHTML = '<i class="bi bi-pencil-square"></i> Editar publicación';
             btnSubmitPub.textContent = 'Guardar cambios';
             modalPub.classList.add('open');
@@ -364,6 +416,7 @@
         function cerrarModalPublicacion() {
             editandoId = null;
             formPub.reset();
+            actualizarFormularioSegunCategoria();
             modalPub.classList.remove('open');
         }
 
@@ -438,6 +491,7 @@
             const esEdicion = Boolean(editandoId);
             const url = esEdicion ? `${API_URL}/comunidad/${editandoId}` : `${API_URL}/comunidad`;
             const metodo = esEdicion ? 'PUT' : 'POST';
+            const categoria = pubCategoria.value;
 
             try {
                 const res = await fetch(url, {
@@ -447,9 +501,9 @@
                         'Authorization': 'Bearer ' + token
                     },
                     body: JSON.stringify({
-                        categoria: document.getElementById('pubCategoria').value,
-                        titulo: document.getElementById('pubTitulo').value.trim(),
-                        contenido: document.getElementById('pubContenido').value.trim()
+                        categoria,
+                        titulo: pubTitulo.value.trim(),
+                        contenido: categoria === 'Pregunta' ? '' : pubContenido.value.trim()
                     })
                 });
                 const data = await res.json();
@@ -471,4 +525,3 @@
 
 </body>
 </html>
-

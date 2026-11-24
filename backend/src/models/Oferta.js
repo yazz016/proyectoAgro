@@ -58,7 +58,7 @@ const OfertaSchema = new mongoose.Schema({
     },
     unidadMedida: {
         type: String,
-        default: 'kg'
+        default: 'kilo'
     },
     precioOfrecido: {
         type: Number,
@@ -94,6 +94,14 @@ const OfertaSchema = new mongoose.Schema({
     referenciaPago: {
         type: String,
         trim: true,
+        default: ''
+    },
+    fotoEntrega: {
+        type: String,
+        default: ''
+    },
+    firmaCliente: {
+        type: String,
         default: ''
     },
     wompiTransactionId: {

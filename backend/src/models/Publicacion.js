@@ -21,13 +21,13 @@ const PublicacionSchema = new mongoose.Schema({
     },
     titulo: {
         type: String,
-        required: [true, 'El título es obligatorio'],
+        required: [true, 'El título o pregunta es obligatorio'],
         trim: true
     },
     contenido: {
         type: String,
-        required: [true, 'El contenido es obligatorio'],
-        trim: true
+        trim: true,
+        default: ''
     },
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -46,3 +46,4 @@ const PublicacionSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('Publicacion', PublicacionSchema);
+

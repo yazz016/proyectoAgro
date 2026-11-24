@@ -22,10 +22,10 @@
             </div>
             <ul class="sidebar-menu">
                 <li id="menuDashboard"><i class="bi bi-house-door-fill"></i> Inicio</li>
-                <li class="active"><i class="bi bi-tree-fill"></i> Cultivos</li>
-                <li><i class="bi bi-shop"></i> Marketplace</li>
-                <li><i class="bi bi-people-fill"></i> Comunidad</li>
-                <li><i class="bi bi-gear"></i> Ajustes</li>
+                <li class="active" id="menuCultivos"><i class="bi bi-tree-fill"></i> Cultivos</li>
+                <li id="menuMarketplace"><i class="bi bi-shop"></i> Marketplace</li>
+                <li id="menuComunidad"><i class="bi bi-people-fill"></i> Comunidad</li>
+                <li id="menuAjustes"><i class="bi bi-gear"></i> Ajustes</li>
             </ul>
             <div class="sidebar-footer">
                 <div class="user-info" id="userInfoBtn" role="button" tabindex="0" title="Ver mi perfil">
@@ -48,7 +48,7 @@
             <!-- Topbar -->
             <div class="topbar">
                 <div class="topbar-left">
-                    <button class="menu-toggle" id="menuToggle">
+                    <button class="menu-toggle" id="menuToggle" aria-label="Abrir o cerrar menú">
                         <i class="bi bi-list"></i>
                     </button>
                     <div>
@@ -224,24 +224,51 @@
 
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                                 <div class="form-group">
-                                    <label>Cantidad disponible <span class="required">*</span></label>
+                                    <label for="cropCantidad">Cantidad disponible <span class="required">*</span></label>
                                     <input type="number" id="cropCantidad" placeholder="0" min="0" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Precio (COP) <span class="required">*</span></label>
-                                    <input type="number" id="cropPrecio" placeholder="0" min="0" required>
+                                    <label for="cropEstado">Estado</label>
+                                    <select id="cropEstado">
+                                        <option value="En crecimiento">En crecimiento</option>
+                                        <option value="En desarrollo">En desarrollo</option>
+                                        <option value="Requiere atención">Requiere atención</option>
+                                        <option value="Cosechado">Cosechado</option>
+                                        <option value="Vendido">Vendido</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label>Estado</label>
-                                <select id="cropEstado">
-                                    <option value="En crecimiento">En crecimiento</option>
-                                    <option value="En desarrollo">En desarrollo</option>
-                                    <option value="Requiere atención">Requiere atención</option>
-                                    <option value="Cosechado">Cosechado</option>
-                                    <option value="Vendido">Vendido</option>
-                                </select>
+                            <!-- Precio por unidad seleccionada + Selector de unidad al lado -->
+                            <div class="crop-price-unit-grid">
+                                <div class="form-group">
+                                    <label for="cropPrecio">Precio por unidad seleccionada (COP) <span class="required">*</span></label>
+                                    <input type="number" id="cropPrecio" placeholder="0" min="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cropUnidad">Unidad <span class="required">*</span></label>
+                                    <select id="cropUnidad" required>
+                                        <option value="kilo">Kilo</option>
+                                        <option value="bulto">Bulto</option>
+                                        <option value="unidad">Unidad</option>
+                                        <option value="carga">Carga</option>
+                                        <option value="libra">Libra</option>
+                                        <option value="docena">Docena</option>
+                                        <option value="tonelada">Tonelada</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Cálculo automático en tiempo real -->
+                            <div class="crop-valor-resumen" id="cropValorResumen" aria-live="polite">
+                                <div class="crop-valor-box">
+                                    <span>Valor Unitario (<b id="cropUnidadLabel">Kilo</b>)</span>
+                                    <strong id="cropValorUnitario">$0 COP</strong>
+                                </div>
+                                <div class="crop-valor-box total">
+                                    <span>Valor Total (<b id="cropCantidadLabel">0</b> × unitario)</span>
+                                    <strong id="cropValorTotal">$0 COP</strong>
+                                </div>
                             </div>
 
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
@@ -284,7 +311,7 @@
 
     <!-- ========== MODAL AGROFLASH / ZONA XPRESS ========== -->
     <div class="modal-overlay" id="modalOfertaCultivo">
-        <div class="modal-content" style="max-width:480px;">
+        <div class="modal-content" style="max-width:500px;">
             <form id="formOfertaCultivo">
                 <div class="modal-header">
                     <h2>⚡ AgroFlash • Zona Xpress</h2>
@@ -294,17 +321,36 @@
                     <input type="hidden" id="ofertaCultivoId">
 
                     <div class="offer-preview-box">
-                        <strong id="ofertaCultivoNombre">Cultivo</strong>
-                        <span>Precio normal actual: <b id="ofertaPrecioNormal">$0 COP</b></span>
+                        <div class="agroflash-resumen-grid">
+                            <div class="agroflash-dato">
+                                <small>Producto</small>
+                                <strong id="ofertaCultivoNombre">Cultivo</strong>
+                            </div>
+                            <div class="agroflash-dato">
+                                <small>Cantidad disponible</small>
+                                <strong id="ofertaCantidadDisponible">0 kilo</strong>
+                            </div>
+                            <div class="agroflash-dato">
+                                <small>Valor unitario</small>
+                                <strong id="ofertaValorUnitario">$0 COP</strong>
+                            </div>
+                            <div class="agroflash-dato destacado">
+                                <small>Valor total</small>
+                                <strong id="ofertaValorTotal">$0 COP</strong>
+                            </div>
+                        </div>
+                        <div class="agroflash-normal-ref">
+                            Precio normal actual: <b id="ofertaPrecioNormal">$0 COP</b>
+                        </div>
                     </div>
 
                     <div class="offer-error-msg" id="ofertaErrorMsg"></div>
 
                     <div class="form-group">
-                        <label for="ofertaPrecioInput">Precio AgroFlash en COP (opcional)</label>
+                        <label for="ofertaPrecioInput">Precio AgroFlash por unidad en COP (opcional)</label>
                         <input type="number" id="ofertaPrecioInput" min="1" placeholder="Ej: 75000 (déjalo vacío si mantienes el precio)">
                         <small style="color:var(--text-muted); display:block; margin-top:4px;">
-                            Si pones un valor menor al precio normal, aparecerá resaltado en la Zona Xpress del Marketplace.
+                            Si pones un valor menor al precio normal, el valor unitario y total se actualizan automáticamente y aparecerá resaltado en Zona Xpress.
                         </small>
                     </div>
 
@@ -339,9 +385,10 @@
                 <button class="close-modal" id="closeNotifModal" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
             </div>
             <div class="modal-body">
-                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <div class="notif-tabs-row" style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
                     <button type="button" class="btn-save" id="tabRecibidas" style="flex:1;">Ofertas recibidas</button>
                     <button type="button" class="btn-cancel" id="tabEnviadas" style="flex:1;">Mis ofertas enviadas</button>
+                    <button type="button" class="btn-cancel" id="tabRechazadas" style="flex:1;">❌ Rechazadas</button>
                 </div>
                 <div id="notifLista" class="notif-list">
                     <p class="text-muted text-center">Cargando ofertas...</p>
@@ -375,8 +422,8 @@
                     </div>
                 </div>
 
-                <!-- Accesos rápidos con íconos -->
-                <div class="profile-quick-actions">
+                <!-- Accesos rápidos adaptados por rol -->
+                <div class="profile-quick-actions" id="profileQuickActions">
                     <button type="button" class="profile-action-btn" id="btnPerfilMensajes">
                         <i class="bi bi-chat-dots-fill"></i>
                         <span>Mensajes</span>
@@ -400,7 +447,7 @@
                         <span class="detail-label"><i class="bi bi-person-badge-fill"></i> Tipo de cuenta</span>
                         <span class="detail-value" id="perfilTipo">-</span>
                     </div>
-                    <div class="profile-detail-item">
+                    <div class="profile-detail-item" id="perfilWhatsappItem">
                         <span class="detail-label"><i class="bi bi-whatsapp" style="color:#16A34A;"></i> Tu número de WhatsApp</span>
                         <div class="whatsapp-input-row">
                             <input type="tel" id="inputWhatsapp" placeholder="Ej: 573001234567">
@@ -444,6 +491,7 @@
         let editandoId = null;
         let imagenSeleccionada = null;
         let comboItems = [];
+        let cultivoAgroFlashActual = null;
 
         // ============ DOM ============
         const tabla = document.getElementById('tablaCultivos');
@@ -460,6 +508,11 @@
         const cropCategoria = document.getElementById('cropCategoria');
         const cropCantidad = document.getElementById('cropCantidad');
         const cropPrecio = document.getElementById('cropPrecio');
+        const cropUnidad = document.getElementById('cropUnidad');
+        const cropValorUnitario = document.getElementById('cropValorUnitario');
+        const cropValorTotal = document.getElementById('cropValorTotal');
+        const cropUnidadLabel = document.getElementById('cropUnidadLabel');
+        const cropCantidadLabel = document.getElementById('cropCantidadLabel');
         const cropEstado = document.getElementById('cropEstado');
         const cropSiembra = document.getElementById('cropSiembra');
         const cropCosecha = document.getElementById('cropCosecha');
@@ -484,6 +537,9 @@
         const formOferta = document.getElementById('formOfertaCultivo');
         const ofertaCultivoId = document.getElementById('ofertaCultivoId');
         const ofertaCultivoNombre = document.getElementById('ofertaCultivoNombre');
+        const ofertaCantidadDisponible = document.getElementById('ofertaCantidadDisponible');
+        const ofertaValorUnitario = document.getElementById('ofertaValorUnitario');
+        const ofertaValorTotal = document.getElementById('ofertaValorTotal');
         const ofertaPrecioNormal = document.getElementById('ofertaPrecioNormal');
         const ofertaPrecioInput = document.getElementById('ofertaPrecioInput');
         const ofertaMotivoInput = document.getElementById('ofertaMotivoInput');
@@ -508,6 +564,34 @@
         function formatearCOP(valor) {
             return '$' + Number(valor || 0).toLocaleString('es-CO') + ' COP';
         }
+
+        function nombreUnidadBonito(u) {
+            const mapa = {
+                kilo: 'Kilo',
+                kg: 'Kilo',
+                bulto: 'Bulto',
+                unidad: 'Unidad',
+                carga: 'Carga',
+                libra: 'Libra',
+                docena: 'Docena',
+                tonelada: 'Tonelada'
+            };
+            return mapa[u] || 'Kilo';
+        }
+
+        function actualizarResumenPrecioCultivo() {
+            const cant = Math.max(0, Number(cropCantidad.value || 0));
+            const precioUnit = Math.max(0, Number(cropPrecio.value || 0));
+            const total = cant * precioUnit;
+            cropUnidadLabel.textContent = nombreUnidadBonito(cropUnidad.value);
+            cropCantidadLabel.textContent = cant.toLocaleString('es-CO');
+            cropValorUnitario.textContent = formatearCOP(precioUnit);
+            cropValorTotal.textContent = formatearCOP(total);
+        }
+
+        cropCantidad.addEventListener('input', actualizarResumenPrecioCultivo);
+        cropPrecio.addEventListener('input', actualizarResumenPrecioCultivo);
+        cropUnidad.addEventListener('change', actualizarResumenPrecioCultivo);
 
         const iconoGranoCafe = `
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
@@ -617,9 +701,19 @@
                     throw new Error('Error al cargar cultivos');
                 }
 
-                cultivos = await response.json();
+                const rawCultivos = await response.json();
+                // Filtro defensivo: nunca mostrar cultivos eliminados (soft delete)
+                cultivos = (Array.isArray(rawCultivos) ? rawCultivos : []).filter(
+                    (c) => !c.eliminado && c.activo !== false && c.estado !== 'Eliminado'
+                );
                 aplicarFiltros();
 
+                if (typeof marcarSeccionComoVista === 'function') {
+                    const pendientesIds = cultivos
+                        .filter((c) => c.estado === 'Requiere atención' || (Number(c.cantidadDisponible) <= 0 && c.estado !== 'Vendido'))
+                        .map((c) => String(c._id));
+                    marcarSeccionComoVista('cultivos', pendientesIds);
+                }
             } catch (error) {
                 console.error('Error:', error);
             }
@@ -631,7 +725,7 @@
                     <tr>
                         <td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">
                             <i class="bi bi-flower1" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
-                            No hay cultivos que coincidan con el filtro.
+                            No hay cultivos activos que coincidan con el filtro.
                         </td>
                     </tr>
                 `;
@@ -650,6 +744,7 @@
                               c.categoria === 'Fruta' ? '🍎' :
                               c.categoria === 'Caficultura' ? iconoGranoCafe : '🥔';
 
+                const unidadMostrar = c.unidadMedida === 'kg' ? 'kilo' : (c.unidadMedida || 'kilo');
                 const disponible = c.disponibleVenta !== false;
                 const agotado = c.cantidadDisponible <= 0 || c.estado === 'Vendido';
 
@@ -687,7 +782,10 @@
                         </div>
                     </td>
                     <td><span style="font-size:0.85rem;">${escapeHtml(c.categoria)}</span></td>
-                    <td><strong>${c.cantidadDisponible}</strong> ${escapeHtml(c.unidadMedida || 'kg')}</td>
+                    <td>
+                        <strong>${c.cantidadDisponible}</strong> ${escapeHtml(unidadMostrar)}
+                        <div style="font-size:0.78rem; color:var(--text-muted);">${formatearCOP(c.precioPorUnidad)} c/u</div>
+                    </td>
                     <td><span class="badge ${badgeClass}">${escapeHtml(c.estado)}</span></td>
                     <td>
                         <button
@@ -753,6 +851,7 @@
             const categoria = filterCategoria.value;
 
             const filtrados = cultivos.filter(c => {
+                if (c.eliminado || c.activo === false || c.estado === 'Eliminado') return false;
                 const itemsTexto = Array.isArray(c.itemsCombo) ? c.itemsCombo.join(' ').toLowerCase() : '';
                 const matchSearch = (c.nombreProducto || '').toLowerCase().includes(search) || itemsTexto.includes(search);
                 const matchEstado = !estado || (
@@ -779,16 +878,37 @@
             }
         }
 
+        function actualizarCalculoAgroFlash() {
+            if (!cultivoAgroFlashActual) return;
+            const cant = Math.max(0, Number(cultivoAgroFlashActual.cantidadDisponible || 0));
+            const unidad = cultivoAgroFlashActual.unidadMedida === 'kg' ? 'kilo' : (cultivoAgroFlashActual.unidadMedida || 'kilo');
+            const precioNormal = Number(cultivoAgroFlashActual.precioPorUnidad || 0);
+            const precioTexto = ofertaPrecioInput.value.trim();
+            const unitarioActivo = precioTexto !== '' && !isNaN(Number(precioTexto)) && Number(precioTexto) > 0
+                ? Number(precioTexto)
+                : precioNormal;
+            const total = cant * unitarioActivo;
+
+            ofertaCantidadDisponible.textContent = `${cant.toLocaleString('es-CO')} ${unidad}`;
+            ofertaValorUnitario.textContent = formatearCOP(unitarioActivo);
+            ofertaValorTotal.textContent = formatearCOP(total);
+        }
+
+        ofertaPrecioInput.addEventListener('input', actualizarCalculoAgroFlash);
+
         function abrirModalOferta(id) {
             const cultivo = cultivos.find(c => c._id === id);
             if (!cultivo) return;
 
+            cultivoAgroFlashActual = cultivo;
             mostrarErrorOferta('');
             ofertaCultivoId.value = cultivo._id;
             ofertaCultivoNombre.textContent = cultivo.nombreProducto;
             ofertaPrecioNormal.textContent = formatearCOP(cultivo.precioPorUnidad);
             ofertaPrecioInput.value = cultivo.precioOferta ? cultivo.precioOferta : '';
             ofertaMotivoInput.value = cultivo.motivoOferta || '';
+
+            actualizarCalculoAgroFlash();
 
             btnQuitarOferta.style.display = cultivo.enOferta ? 'inline-flex' : 'none';
             btnGuardarOferta.textContent = cultivo.enOferta ? '⚡ Actualizar AgroFlash' : '⚡ Activar AgroFlash';
@@ -798,6 +918,7 @@
 
         function cerrarModalOferta() {
             modalOferta.classList.remove('open');
+            cultivoAgroFlashActual = null;
             formOferta.reset();
             mostrarErrorOferta('');
         }
@@ -901,6 +1022,7 @@
                 cropCategoria.value = cultivo.categoria || '';
                 cropCantidad.value = cultivo.cantidadDisponible || '';
                 cropPrecio.value = cultivo.precioPorUnidad || '';
+                cropUnidad.value = cultivo.unidadMedida === 'kg' ? 'kilo' : (cultivo.unidadMedida || 'kilo');
                 cropEstado.value = cultivo.estado || 'En crecimiento';
                 cropSiembra.value = cultivo.fechaSiembra ? cultivo.fechaSiembra.split('T')[0] : '';
                 cropCosecha.value = cultivo.fechaCosecha ? cultivo.fechaCosecha.split('T')[0] : '';
@@ -917,6 +1039,7 @@
             } else {
                 form.reset();
                 editId.value = '';
+                cropUnidad.value = 'kilo';
                 cropEstado.value = 'En crecimiento';
                 imagenSeleccionada = null;
                 mostrarVistaPrevia(null);
@@ -927,6 +1050,7 @@
                 renderizarComboItems();
             }
 
+            actualizarResumenPrecioCultivo();
             modal.classList.add('open');
         }
 
@@ -934,12 +1058,14 @@
             modal.classList.remove('open');
             editandoId = null;
             form.reset();
+            cropUnidad.value = 'kilo';
             imagenSeleccionada = null;
             mostrarVistaPrevia(null);
             cropEsCombo.checked = false;
             comboItems = [];
             comboItemsBox.classList.add('hidden');
             renderizarComboItems();
+            actualizarResumenPrecioCultivo();
         }
 
         // ============ VISTA PREVIA DE IMAGEN ============
@@ -999,6 +1125,8 @@
                     const error = await response.json();
                     throw new Error(error.mensaje || 'Error al eliminar');
                 }
+                cultivos = cultivos.filter((c) => c._id !== id);
+                aplicarFiltros();
                 await cargarCultivos();
             } catch (error) {
                 alert('❌ ' + error.message);
@@ -1033,8 +1161,9 @@
                 categoria: cropCategoria.value,
                 esCombo: cropEsCombo.checked,
                 itemsCombo: cropEsCombo.checked ? [...comboItems] : [],
-                cantidadDisponible: parseInt(cropCantidad.value) || 0,
-                precioPorUnidad: parseInt(cropPrecio.value) || 0,
+                cantidadDisponible: parseInt(cropCantidad.value, 10) || 0,
+                unidadMedida: cropUnidad.value || 'kilo',
+                precioPorUnidad: parseInt(cropPrecio.value, 10) || 0,
                 estado: cropEstado.value,
                 fechaSiembra: cropSiembra.value || undefined,
                 fechaCosecha: cropCosecha.value || undefined,
@@ -1081,4 +1210,3 @@
 
 </body>
 </html>
-

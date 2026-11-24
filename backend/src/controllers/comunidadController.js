@@ -13,11 +13,21 @@ const obtenerPublicaciones = async (req, res) => {
     }
 };
 
-// Crear una publicación nueva
+// Crear una publicación nueva (en Pregunta no exige descripción adicional)
 const crearPublicacion = async (req, res) => {
     try {
         const { titulo, contenido, categoria } = req.body;
-        if (!titulo || !contenido) {
+        const catFinal = categoria || 'Consejo';
+        const tituloLimpio = String(titulo || '').trim();
+        const contenidoLimpio = String(contenido || '').trim();
+
+        if (!tituloLimpio) {
+            return res.status(400).json({
+                mensaje: catFinal === 'Pregunta' ? 'Escribe tu pregunta' : 'Escribe título y mensaje'
+            });
+        }
+
+        if (catFinal !== 'Pregunta' && !contenidoLimpio) {
             return res.status(400).json({ mensaje: 'Escribe título y mensaje' });
         }
 
@@ -26,9 +36,9 @@ const crearPublicacion = async (req, res) => {
             autorId: req.usuario.id,
             autorNombre: autor?.nombre || 'Usuario',
             autorTipo: autor?.tipo || 'agricultor',
-            categoria: categoria || 'Consejo',
-            titulo: titulo.trim(),
-            contenido: contenido.trim()
+            categoria: catFinal,
+            titulo: tituloLimpio,
+            contenido: catFinal === 'Pregunta' ? '' : contenidoLimpio
         });
 
         await nueva.save();
@@ -42,10 +52,7 @@ const crearPublicacion = async (req, res) => {
 const editarPublicacion = async (req, res) => {
     try {
         const { titulo, contenido, categoria } = req.body;
-        if (!titulo || !titulo.trim() || !contenido || !contenido.trim()) {
-            return res.status(400).json({ mensaje: 'Escribe título y mensaje' });
-        }
-
+        const categoriasValidas = ['Consejo', 'Clima y Plagas', 'Pregunta'];
         const pub = await Publicacion.findById(req.params.id);
         if (!pub) {
             return res.status(404).json({ mensaje: 'Publicación no encontrada' });
@@ -55,12 +62,23 @@ const editarPublicacion = async (req, res) => {
             return res.status(403).json({ mensaje: 'No autorizado' });
         }
 
-        const categoriasValidas = ['Consejo', 'Clima y Plagas', 'Pregunta'];
-        if (categoria && categoriasValidas.includes(categoria)) {
-            pub.categoria = categoria;
+        const catFinal = (categoria && categoriasValidas.includes(categoria)) ? categoria : pub.categoria;
+        const tituloLimpio = String(titulo || '').trim();
+        const contenidoLimpio = String(contenido || '').trim();
+
+        if (!tituloLimpio) {
+            return res.status(400).json({
+                mensaje: catFinal === 'Pregunta' ? 'Escribe tu pregunta' : 'Escribe título y mensaje'
+            });
         }
-        pub.titulo = titulo.trim();
-        pub.contenido = contenido.trim();
+
+        if (catFinal !== 'Pregunta' && !contenidoLimpio) {
+            return res.status(400).json({ mensaje: 'Escribe título y mensaje' });
+        }
+
+        pub.categoria = catFinal;
+        pub.titulo = tituloLimpio;
+        pub.contenido = catFinal === 'Pregunta' ? '' : contenidoLimpio;
 
         await pub.save();
         res.json(pub);
@@ -145,4 +163,3 @@ module.exports = {
     agregarComentario,
     eliminarPublicacion
 };
-
