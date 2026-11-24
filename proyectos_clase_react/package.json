@@ -1,0 +1,19 @@
+{
+  "name": "agroxpress-componentes-react",
+  "version": "1.0.0",
+  "description": "Componentes front-end en React para el proyecto formativo AgroXpress y proyectos de clase SENA GA7-220501096-AA4-EV03",
+  "author": "Jeimy Yazmin Gomez Arevalo",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "vite": "^5.4.0"
+  }
+}
