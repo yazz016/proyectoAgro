@@ -1,0 +1,13 @@
+{
+  "name": "servicio-web-autenticacion-aa5",
+  "version": "1.0.0",
+  "description": "Servicio web API REST para registro e inicio de sesion - Evidencia GA7-220501096-AA5-EV01",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Jeimy Yazmin Gomez Arevalo",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
