@@ -1,0 +1,50 @@
+﻿====================================================================
+DOCUMENTACION DE ENDPOINTS - API SERVICIO WEB (GA7-220501096-AA5-EV02)
+Proyecto formativo: AgroXpress (Modulo de Registro e Inicio de Sesion)
+Aprendiz: Jeimy Yazmin Gomez Arevalo | Ficha: 3186617
+URL Base Local: http://localhost:4000
+====================================================================
+
+1. VERIFICAR ESTADO DEL SERVICIO
+- Metodo: GET
+- Endpoint: /api/estado
+- URL completa: http://localhost:4000/api/estado
+- Body requerido: No aplica
+- Respuesta esperada (200 OK):
+  {
+    "ok": true,
+    "servicio": "API Registro e Inicio de Sesion - AgroXpress (GA7-220501096-AA5)",
+    "estado": "Activo",
+    "usuariosRegistrados": 0
+  }
+
+2. REGISTRO DE USUARIO
+- Metodo: POST
+- Endpoint: /api/registro
+- URL completa: http://localhost:4000/api/registro
+- Header: Content-Type: application/json
+- Body (raw JSON) de ejemplo:
+  {
+    "usuario": "jeimy.agro",
+    "password": "ClaveSegura2026"
+  }
+- Respuesta exitosa (201 Created):
+  Usuario registrado correctamente.
+- Respuestas de error controladas:
+  * 400 Bad Request: Campos vacios o contrasena menor a 6 caracteres.
+  * 409 Conflict: El usuario ya se encuentra registrado.
+
+3. INICIO DE SESION (AUTENTICACION)
+- Metodo: POST
+- Endpoint: /api/login
+- URL completa: http://localhost:4000/api/login
+- Header: Content-Type: application/json
+- Body (raw JSON) de ejemplo:
+  {
+    "usuario": "jeimy.agro",
+    "password": "ClaveSegura2026"
+  }
+- Respuesta exitosa (200 OK):
+  "Autenticación satisfactoria."
+- Respuesta de error (401 Unauthorized):
+  "Error en la autenticación: usuario o contraseña incorrectos."
